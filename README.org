@@ -1,1 +1,12 @@
 #+TITLE: Информационная система "Учёт техники ФКН"
+
+*Чтобы запустить проект, можно использовать Pipenv*
+#+begin_example bash
+$ pipenv run python main.py
+#+end_example
+
+
+*Установка pipenv*
+#+begin_example bash
+$ pip install --user pipenv
+#+end_example
