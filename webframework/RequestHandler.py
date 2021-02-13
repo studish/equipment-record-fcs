@@ -95,7 +95,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
         self.done = True
         self.send_response(self.responseCode)
+        contentTypeSent = False
         for header in self.responseHeaders:
             self.send_header(*header)
+            if header[0] == "Content-Type":
+                contentTypeSent = True
+        if not contentTypeSent:
+            self.send_header("Content-Type", self.contentType)
         self.end_headers()
         self.wfile.write(data.encode())

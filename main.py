@@ -8,7 +8,6 @@ server = webframework.Server()
 
 @server.get('/api/jsonExample')
 def index(handler: webframework.RequestHandler):
-    handler.responseHeaders.append(("Content-Type", 'text/json'))
     handler.send({
         "key": "value",
         "numkey": 1,
