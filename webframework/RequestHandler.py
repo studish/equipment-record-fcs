@@ -14,10 +14,8 @@ if TYPE_CHECKING:
     from webframework.Server import Server
 
 
-class RequestHandler(http.server.SimpleHTTPRequestHandler):
+class RequestHandler(http.server.BaseHTTPRequestHandler):
     webServer: Server = None
-
-    request: bytes
 
     responseCode: int = 200
     responseHeaders: list[list[str]] = []
@@ -25,10 +23,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     query: dict[str, list[str]] = {}
 
+    session: dict[str, str]
+
     def __init__(self, request, client_address, server):
         if self.webServer is None:
             raise RuntimeError("webServer was not specified!")
-        self.request = request
 
         super().__init__(request, client_address, server)
 
@@ -48,10 +47,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self, *args, **kwargs):
         for prefix, localDirPath in self.webServer.staticPaths.items():
-            logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
             if self.path.startswith(prefix):
+                logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
                 localPath = localDirPath + self.path[len(prefix):]
                 logger.debug(localPath)
+                # TODO: Injection protection!
 
                 if os.path.isdir(localPath):
                     localPath = localPath.rstrip('/') + '/index.html'
