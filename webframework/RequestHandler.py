@@ -33,6 +33,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         if self.path in self.webServer.handlers[method].keys():
             self.webServer.handlers[method][self.path](self)
+            if not self.done:
+                # The handler didn't send the response. Assume something went wrong
+                self.send_error(500)
         else:
             self.send_error(404)
 
