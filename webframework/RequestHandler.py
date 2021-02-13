@@ -21,7 +21,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     responseCode: int = 200
     responseHeaders: list[list[str]] = []
-    contentType: str
+    contentType: str = "text/plain"
 
     query: dict[str, list[str]] = {}
 
@@ -48,7 +48,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self, *args, **kwargs):
         for prefix, localDirPath in self.webServer.staticPaths.items():
-            logger.debug(prefix + " -> " + localDirPath)
+            logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
             if self.path.startswith(prefix):
                 localPath = localDirPath + self.path[len(prefix):]
                 logger.debug(localPath)
