@@ -19,6 +19,7 @@ class Server:
         self.server = server_class(default_server_address, handler_class)
         if handler_class is RequestHandler:
             handler_class.webServer = self
+        self.staticPaths = {}
 
     def __set_request_handler(self, method, path, handler, **kwargs):
         self.handlers[method][path] = handler
@@ -54,9 +55,10 @@ class Server:
             return handler
         return _
 
+    staticPaths: dict[str, str]
 
-    # TODO: Serve static files from a specified directory on a specified path prefix
-    # def serveStatic(self, pathPrefix, localPath):
+    def serveStatic(self, pathPrefix: str, localPath: str):
+        self.staticPaths[pathPrefix.rstrip('/')] = localPath
 
     def listen(self, host=default_server_address[0], port=default_server_address[1]):
         self.server.server_address = (host, port)
