@@ -33,6 +33,11 @@ def postrequest(handler: webframework.RequestHandler):
     })
 
 
+@server.get('/unicodeTest')
+def uwu(handler):
+    handler.send('<h1>ТЕСТ</h1><p>Если это видно, значит юникод обрабатывается корректно!</p><img src="./favicon.ico" />')
+
+
 server.serveStatic('/', './static')
 
 if __name__ == "__main__":

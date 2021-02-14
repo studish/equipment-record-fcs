@@ -25,7 +25,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     responseCode: int = 200
     # [['Header-Name', 'Header-Value']]
     responseHeaders: List[List[str]] = []
-    contentType: str = "text/plain"
+    contentType: str = "text/html"
 
     postData: dict or list
     postFiles: Dict[str, List[Tuple[bytes, str]]]
@@ -71,11 +71,11 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     localPath = localPath.rstrip('/') + '/index.html'
 
                 if not os.path.isfile(localPath):
-                    break
+                    continue
 
                 contentType = mimetypes.guess_type(localPath)[0]
                 if contentType is None:
-                    contentType = "text/plain"
+                    contentType = "text/html"
                 self.send_response(200)
                 self.send_header('Content-Type', contentType)
                 with open(localPath, 'rb') as file:
@@ -129,11 +129,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     done = False
 
-    def send(self, data: str):
-        # TODO: Send encoding for plain text, UTF-8 by default
-
+    def send(self, data: str, encoding="utf-8"):
         if type(data) is dict:
-            logger.debug("JSON detected!")
+            logger.debug("JSON response detected!")
             self.contentType = "text/json"
             data = json.dumps(data)
 
@@ -145,9 +143,11 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if header[0] == "Content-Type":
                 contentTypeSent = True
         if not contentTypeSent:
+            if self.contentType == "text/html":
+                self.contentType += "; charset=" + encoding
             self.send_header("Content-Type", self.contentType)
         self.end_headers()
-        self.wfile.write(data.encode())
+        self.wfile.write(data.encode(encoding))
 
     def parse_request_body(self, content_type, content_type_raw, content_length) -> Tuple[dict, dict]:
         if content_type not in self.SUPPORTED_TYPES:  # Check just in case
