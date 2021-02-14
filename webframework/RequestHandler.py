@@ -23,6 +23,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     webServer: Server = None
 
     responseCode: int = 200
+    # [['Header-Name', 'Header-Value']]
     responseHeaders: List[List[str]] = []
     contentType: str = "text/plain"
 
