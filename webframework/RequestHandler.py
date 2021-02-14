@@ -129,11 +129,14 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     done = False
 
-    def send(self, data: str, encoding="utf-8"):
+    def send(self, data: str or dict or bytes, encoding="utf-8"):
         if type(data) is dict:
             logger.debug("JSON response detected!")
             self.contentType = "text/json"
             data = json.dumps(data)
+
+        if type(data) is str:
+            data = data.encode(encoding)
 
         self.done = True
         self.send_response(self.responseCode)
@@ -147,7 +150,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.contentType += "; charset=" + encoding
             self.send_header("Content-Type", self.contentType)
         self.end_headers()
-        self.wfile.write(data.encode(encoding))
+        self.wfile.write(data)
 
     def parse_request_body(self, content_type, content_type_raw, content_length) -> Tuple[dict, dict]:
         if content_type not in self.SUPPORTED_TYPES:  # Check just in case
