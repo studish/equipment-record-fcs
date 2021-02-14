@@ -10,8 +10,9 @@ import re
 import mimetypes
 import http.server
 import urllib.parse
-from utils.Logger import webServerLogger as logger
-from typing import TYPE_CHECKING
+from utils.Logger import logger
+from typing import TYPE_CHECKING, List, Dict, Tuple
+
 if TYPE_CHECKING:
     from webframework.Server import Server
 
@@ -22,17 +23,17 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     webServer: Server = None
 
     responseCode: int = 200
-    responseHeaders: list[list[str]] = []
+    responseHeaders: List[List[str]] = []
     contentType: str = "text/plain"
 
     postData: dict or list
-    postFiles: dict[str, list[tuple[bytes, str]]]
+    postFiles: Dict[str, List[Tuple[bytes, str]]]
 
-    acceptable_types: list[str] = []
+    acceptable_types: List[str] = []
 
-    query: dict[str, list[str]] = {}
+    query: Dict[str, List[str]] = {}
 
-    session: dict[str, str]
+    session: Dict[str, str]
 
     def __init__(self, request, client_address, server):
         if self.webServer is None:
@@ -60,7 +61,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
                 localPath = localDirPath + self.path[len(prefix):]
                 for c in '?#':
-                    if '?' in localPath:
+                    if c in localPath:
                         localPath = localPath[:localPath.index('?')]
                 logger.debug(localPath)
                 # TODO: Injection protection!
@@ -72,14 +73,14 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     break
 
                 contentType = mimetypes.guess_type(localPath)[0]
-                if contentType == None:
+                if contentType is None:
                     contentType = "text/plain"
                 self.send_response(200)
                 self.send_header('Content-Type', contentType)
                 with open(localPath, 'rb') as file:
                     filestat: os.stat_result = os.fstat(file.fileno())
                     self.send_header("Content-Length", str(filestat[6]))
-                    self.send_header("Last-Modified", self.date_time_string(filestat.st_mtime))
+                    self.send_header("Last-Modified", self.date_time_string(int(filestat.st_mtime)))
                     self.end_headers()
                     self.wfile.write(file.read())
                 return
@@ -87,9 +88,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.do('GET')
 
     def do_POST(self, *args, **kwargs):
-        purepath = re.match('^([^?#]+).*', self.path).group(1)
-        if purepath in self.webServer.accept_content_types['POST'].keys():
-            self.acceptable_types = self.webServer.accept_content_types['POST'][purepath]
+        pure_path = re.match('^([^?#]+).*', self.path).group(1)
+        if pure_path in self.webServer.accept_content_types['POST'].keys():
+            self.acceptable_types = self.webServer.accept_content_types['POST'][pure_path]
 
         body = {}
         files = {}
@@ -103,7 +104,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if ';' in content_type_raw:
                 content_type = content_type_raw[:content_type_raw.index(';')].strip()
 
-            if content_type != None and content_type in self.acceptable_types and content_type in self.SUPPORTED_TYPES:
+            if content_type is not None and content_type in self.acceptable_types and \
+                    content_type in self.SUPPORTED_TYPES:
                 body, files = self.parse_request_body(content_type, content_type_raw, content_length)
                 if body is None:
                     body = {}
@@ -146,15 +148,15 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data.encode())
 
-    def parse_request_body(self, content_type, content_type_raw, content_length) -> tuple[dict, dict]:
-        if content_type not in self.SUPPORTED_TYPES: # Check just in case
+    def parse_request_body(self, content_type, content_type_raw, content_length) -> Tuple[dict, dict]:
+        if content_type not in self.SUPPORTED_TYPES:  # Check just in case
             raise RuntimeError("Content-Type {} not supported!".format(content_type))
         if content_type == 'application/json':
             body_raw = self.rfile.read(content_length)
             body_parsed = json.loads(body_raw)
-            return body_parsed, None
+            return body_parsed, {}
         if content_type == "application/x-www-form-urlencoded":
-            body_raw: list[tuple[bytes, bytes]] = self.rfile.read(content_length)
+            body_raw = self.rfile.read(content_length)
             print(body_raw)
             body_parsed_tuples = urllib.parse.parse_qsl(body_raw.decode())
             body_parsed = {}
@@ -164,16 +166,18 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     body_parsed[key] = []
                 # body_parsed[key].append(value.decode("utf-8"))
                 body_parsed[key].append(value)
-            return body_parsed, None
+            return body_parsed, {}
         if content_type == "multipart/form-data":
             c_type, c_data = parse_header(content_type_raw)
             bytestring = self.rfile.read(content_length)
 
+            # noinspection PyTypeChecker
             c_data['boundary'] = bytes(c_data['boundary'], 'utf-8')
             c_data['CONTENT-LENGTH'] = content_length
 
+            # noinspection PyTypeChecker
             form_data = parse_multipart(io.BytesIO(bytestring), c_data)
-            form_files: dict[str, list[tuple[bytes, str]]] = {}
+            form_files: Dict[str, List[Tuple[bytes, str]]] = {}
 
             pattern: re.Pattern = re.compile(b'Content-Disposition: form-data; name="(.*)"; filename="(.*)"')
             for match in pattern.finditer(bytestring):

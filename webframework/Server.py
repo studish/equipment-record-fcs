@@ -2,7 +2,7 @@
 
 import utils
 import asyncio
-from utils import webServerLogger as logger
+from utils import logger as logger
 from webframework.RequestHandler import RequestHandler
 import http.server
 

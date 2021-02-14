@@ -35,4 +35,4 @@ dictLogConfig = {
 
 logging.config.dictConfig(dictLogConfig)
 
-webServerLogger = logging.getLogger("webServer")
+logger = logging.getLogger("webServer")

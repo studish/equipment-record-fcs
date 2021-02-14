@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import webframework
-from utils import webServerLogger as logger
+from utils import logger as logger
 import os
 
 
