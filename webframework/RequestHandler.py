@@ -88,43 +88,19 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         self.do('GET')
 
-    def do_POST(self, *args, **kwargs):
-        pure_path = re.match('^([^?#]+).*', self.path).group(1)
-        if pure_path in self.webServer.accept_content_types['POST'].keys():
-            self.acceptable_types = self.webServer.accept_content_types['POST'][pure_path]
-
-        body = {}
-        files = {}
-        # Get the content length to read
-        content_length = int(self.headers.get('Content-Length', 0))
-        if content_length != 0:
-            # Now we read the whole POST body in parts.
-            # First, we check the content type (assume it's text/plain if not provided)
-            content_type_raw: str = self.headers.get('Content-Type', '')
-            content_type: str = content_type_raw
-            if ';' in content_type_raw:
-                content_type = content_type_raw[:content_type_raw.index(';')].strip()
-
-            if content_type is not None and content_type in self.acceptable_types and \
-                    content_type in self.SUPPORTED_TYPES:
-                body, files = self.parse_request_body(content_type, content_type_raw, content_length)
-                if body is None:
-                    body = {}
-                if files is None:
-                    files = {}
-
-        self.postData = body
-        self.postFiles = files
-
+    def do_POST(self):
+        self.process_request_body()
         self.do('POST')
 
-    def do_PUT(self, *args, **kwargs):
+    def do_PUT(self):
+        self.process_request_body()
         self.do('PUT')
 
-    def do_DELETE(self, *args, **kwargs):
+    def do_DELETE(self):
         self.do('DELETE')
 
-    def do_PATCH(self, *args, **kwargs):
+    def do_PATCH(self):
+        self.process_request_body()
         self.do('PATCH')
 
     done = False
@@ -151,6 +127,34 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Type", self.contentType)
         self.end_headers()
         self.wfile.write(data)
+
+    def process_request_body(self):
+        pure_path = re.match('^([^?#]+).*', self.path).group(1)
+        if pure_path in self.webServer.accept_content_types['POST'].keys():
+            self.acceptable_types = self.webServer.accept_content_types['POST'][pure_path]
+
+        body = {}
+        files = {}
+        # Get the content length to read
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length != 0:
+            # Now we read the whole POST body in parts.
+            # First, we check the content type (assume it's text/plain if not provided)
+            content_type_raw: str = self.headers.get('Content-Type', '')
+            content_type: str = content_type_raw
+            if ';' in content_type_raw:
+                content_type = content_type_raw[:content_type_raw.index(';')].strip()
+
+            if content_type is not None and content_type in self.acceptable_types and \
+                    content_type in self.SUPPORTED_TYPES:
+                body, files = self.parse_request_body(content_type, content_type_raw, content_length)
+                if body is None:
+                    body = {}
+                if files is None:
+                    files = {}
+
+        self.postData = body
+        self.postFiles = files
 
     def parse_request_body(self, content_type, content_type_raw, content_length) -> Tuple[dict, dict]:
         if content_type not in self.SUPPORTED_TYPES:  # Check just in case
