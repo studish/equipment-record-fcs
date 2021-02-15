@@ -21,15 +21,15 @@ def index(handler: webframework.RequestHandler):
 def postrequest(handler: webframework.RequestHandler):
     if not os.path.isdir('./files'):
         os.mkdir('./files')
-    for key in handler.postFiles:
-        for file, filename in handler.postFiles[key]:
+    for key in handler.post_files:
+        for file, filename in handler.post_files[key]:
             logger.debug("Saving %s...", filename)
             with open('./files/' + filename, 'wb') as f:
                 f.write(file)
                 f.close()
     handler.send({
-        "data": handler.postData,
-        "files": [(key, [filename for _, filename in handler.postFiles[key]]) for key in handler.postFiles.keys()]
+        "data": handler.post_data,
+        "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
     })
 
 

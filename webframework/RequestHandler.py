@@ -16,75 +16,97 @@ from typing import TYPE_CHECKING, List, Dict, Tuple
 if TYPE_CHECKING:
     from webframework.Server import Server
 
+pure_path_pattern = re.compile(r'^([^?#]+).*')
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
+    # The supported types of request body
     SUPPORTED_TYPES = ['application/json', 'application/x-www-form-urlencoded', 'multipart/form-data']
 
-    webServer: Server = None
+    # The web server instance, holds the high-level logic
+    web_server: Server | None = None
 
-    responseCode: int = 200
+    response_code: int = 200
     # [['Header-Name', 'Header-Value']]
-    responseHeaders: List[List[str]] = []
-    contentType: str = "text/html"
+    response_headers: List[List[str]] = []
+    response_content_type: str = "text/html"
 
-    postData: dict or list
-    postFiles: Dict[str, List[Tuple[bytes, str]]]
+    # Formatted like JSON. If the content-type is form-data, it's a dict.
+    # If it's application/json, this can be anything.
+    post_data: dict or list
 
+    # field-name -> list of pairs (file_content, file_name)
+    post_files: Dict[str, List[Tuple[bytes, str]]]
+
+    # Request body content types that will be parsed and processed
     acceptable_types: List[str] = []
 
+    # The path query (?a=b&b=c) parsed into dict{name -> list of values}
     query: Dict[str, List[str]] = {}
 
+    # The user session, stored on the server
     session: Dict[str, str]
 
+    # Used to check if the data was sent after the handler finished working.
+    done = False
+
     def __init__(self, request, client_address, server):
-        if self.webServer is None:
-            raise RuntimeError("webServer was not specified!")
+        if self.web_server is None:
+            raise RuntimeError("web_server was not specified!")
 
         super().__init__(request, client_address, server)
 
     def do(self, method):
+        # Parse the URL properly
         url = urllib.parse.urlparse(self.path)
-
         self.path = url.path
         self.query = urllib.parse.parse_qs(url.query)
 
-        if self.path in self.webServer.handlers[method].keys():
-            self.webServer.handlers[method][self.path](self)
+        # Try to find a matching handler function among the ones defined by the server
+        if self.path in self.web_server.handlers[method].keys():
+            # Call the handler
+            self.web_server.handlers[method][self.path](self)
             if not self.done:
                 # The handler didn't send the response. Assume something went wrong
                 self.send_error(500)
-        else:
+        else: # Didn't find a matching handler function
             self.send_error(404)
 
-    def do_GET(self, *args, **kwargs):
-        for prefix, localDirPath in self.webServer.staticPaths.items():
-            if self.path.startswith(prefix):
-                logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
-                localPath = localDirPath + self.path[len(prefix):]
-                for c in '?#':
-                    if c in localPath:
-                        localPath = localPath[:localPath.index('?')]
-                logger.debug(localPath)
-                # TODO: Injection protection!
+    def do_GET(self):
+        # Clean up the URL path for checkups
+        local_path = pure_path_pattern.match(self.path).group(1)
 
-                if os.path.isdir(localPath):
-                    localPath = localPath.rstrip('/') + '/index.html'
+        # If we don't have a handler for this path, try static first
+        if local_path not in self.web_server.handlers['GET'].keys():
+            # Check each static prefix - optimal because there aren't many prefixes
+            for prefix, local_dir_path in self.web_server.staticPaths.items():
+                if self.path.startswith(prefix):
+                    # logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
+                    local_path = local_dir_path + local_path
+                    # logger.debug(localPath)
+                    # TODO: Injection protection! (is it needed?)
 
-                if not os.path.isfile(localPath):
-                    continue
+                    # If we're pointing at a directory, try index.html
+                    if os.path.isdir(local_path):
+                        local_path = local_path.rstrip('/') + '/index.html'
 
-                contentType = mimetypes.guess_type(localPath)[0]
-                if contentType is None:
-                    contentType = "text/html"
-                self.send_response(200)
-                self.send_header('Content-Type', contentType)
-                with open(localPath, 'rb') as file:
-                    filestat: os.stat_result = os.fstat(file.fileno())
-                    self.send_header("Content-Length", str(filestat[6]))
-                    self.send_header("Last-Modified", self.date_time_string(int(filestat.st_mtime)))
-                    self.end_headers()
-                    self.wfile.write(file.read())
-                return
+                    # If the file is not found, skip
+                    if not os.path.isfile(local_path):
+                        continue
+
+                    # Guess the mimetype based on the file URL
+                    content_type = mimetypes.guess_type(local_path)[0]
+                    if content_type is None: # If can't guess, assume plain text
+                        content_type = "text/plain"
+                    self.send_response(200) # If we reached here, then it's a success
+                    self.send_header('Content-Type', content_type)
+                    with open(local_path, 'rb') as file:
+                        filestat: os.stat_result = os.fstat(file.fileno()) # To get filesize and last modified
+                        self.send_header("Content-Length", str(filestat[6]))
+                        self.send_header("Last-Modified", self.date_time_string(int(filestat.st_mtime)))
+                        self.end_headers()
+                        self.wfile.write(file.read()) # Send the file over
+                        file.close()
+                    return
 
         self.do('GET')
 
@@ -103,35 +125,49 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.process_request_body()
         self.do('PATCH')
 
-    done = False
-
-    def send(self, data: str or dict or bytes, encoding="utf-8"):
-        if type(data) is dict:
+    def send(self, data_raw: str | dict | list | bytes, encoding="utf-8"):
+        data: bytes
+        # Dict / List -> JSON string -> encoded bytes
+        if type(data_raw) is dict or type(data_raw) is list:
             logger.debug("JSON response detected!")
-            self.contentType = "text/json"
-            data = json.dumps(data)
+            self.response_content_type = "text/json"
+            data = json.dumps(data_raw).encode(encoding)
+        elif type(data_raw) is str:
+            # String -> properly encrypted bytes
+            data = data_raw.encode(encoding)
+        elif type(data_raw) is bytes:
+            data = data_raw
+        else:
+            raise TypeError("Response body type {} is not supported!".format(type(data_raw)))
 
-        if type(data) is str:
-            data = data.encode(encoding)
+        # Send response code
+        self.send_response(self.response_code)
 
-        self.done = True
-        self.send_response(self.responseCode)
         contentTypeSent = False
-        for header in self.responseHeaders:
+        # Send all headers
+        for header in self.response_headers:
             self.send_header(*header)
             if header[0] == "Content-Type":
                 contentTypeSent = True
+
+        # We have to have the Content-Type header, so if it's not present, we assume it's HTML
+        # Because in this case it's us who's encoding this, we can safely specify the encoding
         if not contentTypeSent:
-            if self.contentType == "text/html":
+            if self.contentType == "text/html": # REVIEW: HTML? Maybe something else?
                 self.contentType += "; charset=" + encoding
-            self.send_header("Content-Type", self.contentType)
+            self.send_header("Content-Type", self.response_content_type)
+
+        # Finish up the response
         self.end_headers()
         self.wfile.write(data)
 
+        # We just sent the data, mark as done.
+        self.done = True
+
     def process_request_body(self):
-        pure_path = re.match('^([^?#]+).*', self.path).group(1)
-        if pure_path in self.webServer.accept_content_types['POST'].keys():
-            self.acceptable_types = self.webServer.accept_content_types['POST'][pure_path]
+        pure_path = pure_path_pattern.match(self.path).group(1)
+        if pure_path in self.web_server.accept_content_types['POST'].keys():
+            self.acceptable_types = self.web_server.accept_content_types['POST'][pure_path]
 
         body = {}
         files = {}
@@ -139,7 +175,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
         if content_length != 0:
             # Now we read the whole POST body in parts.
-            # First, we check the content type (assume it's text/plain if not provided)
+            # First, we check the content type
             content_type_raw: str = self.headers.get('Content-Type', '')
             content_type: str = content_type_raw
             if ';' in content_type_raw:
@@ -153,10 +189,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 if files is None:
                     files = {}
 
-        self.postData = body
-        self.postFiles = files
+        self.post_data = body
+        self.post_files = files
 
-    def parse_request_body(self, content_type, content_type_raw, content_length) -> Tuple[dict, dict]:
+    def parse_request_body(self, content_type, content_type_raw, content_length) -> Tuple[Dict, Dict]:
         if content_type not in self.SUPPORTED_TYPES:  # Check just in case
             raise RuntimeError("Content-Type {} not supported!".format(content_type))
         if content_type == 'application/json':
@@ -176,18 +212,21 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 body_parsed[key].append(value)
             return body_parsed, {}
         if content_type == "multipart/form-data":
-            c_type, c_data = parse_header(content_type_raw)
+            _, c_data = parse_header(content_type_raw)
             bytestring = self.rfile.read(content_length)
 
+            # === Let the CGI module handle the multipart parse.
+            # HACK: the cgi module requires the boundary to be in bytes, the artifact of python 2
             # noinspection PyTypeChecker
-            c_data['boundary'] = bytes(c_data['boundary'], 'utf-8')
+            c_data['boundary'] = bytes(c_data['boundary'], 'utf-8') # type: ignore
             c_data['CONTENT-LENGTH'] = content_length
-
             # noinspection PyTypeChecker
-            form_data = parse_multipart(io.BytesIO(bytestring), c_data)
-            form_files: Dict[str, List[Tuple[bytes, str]]] = {}
+            form_data = parse_multipart(io.BytesIO(bytestring), c_data) # type: ignore
+            # ==================================================
 
+            form_files: Dict[str, List[Tuple[bytes, str]]] = {}
             pattern: re.Pattern = re.compile(b'Content-Disposition: form-data; name="(.*)"; filename="(.*)"')
+
             for match in pattern.finditer(bytestring):
                 name, filename = match.group(1).decode("utf-8"), match.group(2).decode()
 
@@ -199,3 +238,4 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     del form_data[name]
 
             return form_data, form_files
+        return {}, {}

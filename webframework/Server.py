@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
-import utils
-import asyncio
 from utils import logger as logger
 from webframework.RequestHandler import RequestHandler
 import http.server
+from typing import List, Dict, Callable
 
 default_server_address = ('', 8000)
 
 class Server:
     #              method   path  handler
-    handlers: dict[str, dict[str, callable]] = {}
+    handlers: Dict[str, Dict[str, Callable]] = {}
     #                         method    path    types
-    accept_content_types: dict[str, dict[str, list[str]]] = {}
+    accept_content_types: Dict[str, Dict[str, List[str]]] = {}
     server: http.server.HTTPServer
 
     def __init__(self, server_class=http.server.HTTPServer, handler_class=RequestHandler):
