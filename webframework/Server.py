@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 
+# import webframework
 from utils import logger as logger
 from webframework.RequestHandler import RequestHandler
 import http.server
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Any
 
 default_server_address = ('', 8000)
 
+
 class Server:
+    """
+    Represents a web server
+    """
+    
     #              method   path  handler
     handlers: Dict[str, Dict[str, Callable]] = {}
     #                         method    path    types
@@ -21,7 +27,7 @@ class Server:
             self.accept_content_types[method] = {}
         self.server = server_class(default_server_address, handler_class)
         if handler_class is RequestHandler:
-            handler_class.webServer = self
+            handler_class.web_server = self
         self.staticPaths = {}
 
     def __set_request_handler(self, method, path, handler, **kwargs):
@@ -36,8 +42,8 @@ class Server:
             return handler
         return _
 
-    def post(self, path, accept=RequestHandler.SUPPORTED_TYPES, **kwargs):
-        def _(handler):
+    def post(self, path: str, accept: List[str]=RequestHandler.SUPPORTED_TYPES, **kwargs: Dict[str, Any]) -> Callable:
+        def _(handler: Callable) -> Callable:
             self.__set_request_handler('POST', path, handler, accept=accept, **kwargs)
             return handler
         return _

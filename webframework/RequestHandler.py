@@ -83,7 +83,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     # logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
                     local_path = local_dir_path + local_path
                     # logger.debug(localPath)
-                    # TODO: Injection protection! (is it needed?)
+                    # TODO: Injection protection!
 
                     # If we're pointing at a directory, try index.html
                     if os.path.isdir(local_path):
@@ -153,8 +153,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         # We have to have the Content-Type header, so if it's not present, we assume it's HTML
         # Because in this case it's us who's encoding this, we can safely specify the encoding
         if not contentTypeSent:
-            if self.contentType == "text/html": # REVIEW: HTML? Maybe something else?
-                self.contentType += "; charset=" + encoding
+            if self.response_content_type == "text/html": # REVIEW: HTML? Maybe something else?
+                self.response_content_type += "; charset=" + encoding
             self.send_header("Content-Type", self.response_content_type)
 
         # Finish up the response
