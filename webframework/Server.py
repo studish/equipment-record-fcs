@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-# import webframework
 from utils import logger as logger
 from webframework.RequestHandler import RequestHandler
+from webframework import Session
 import http.server
 from typing import List, Dict, Callable, Any
 
@@ -20,6 +20,10 @@ class Server:
     accept_content_types: Dict[str, Dict[str, List[str]]] = {}
     server: http.server.HTTPServer
 
+    # Main storage for all of the sessions stored on the server
+    #            sessid->Session
+    sessions: Dict[str, Session.Session]
+
     def __init__(self, server_class=http.server.HTTPServer, handler_class=RequestHandler):
         super().__init__()
         for method in ['GET', "POST", "PUT", "DELETE", "PATCH"]:
@@ -29,6 +33,7 @@ class Server:
         if handler_class is RequestHandler:
             handler_class.web_server = self
         self.staticPaths = {}
+        self.sessions = {}
 
     def __set_request_handler(self, method, path, handler, **kwargs):
         self.handlers[method][path] = handler

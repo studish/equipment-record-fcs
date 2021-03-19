@@ -9,6 +9,8 @@ import json
 import re
 import mimetypes
 import http.server
+from http import cookies
+from webframework import Session
 import urllib.parse
 from utils.Logger import logger
 from typing import TYPE_CHECKING, List, Dict, Tuple
@@ -18,12 +20,13 @@ if TYPE_CHECKING:
 
 pure_path_pattern = re.compile(r'^([^?#]+).*')
 
+
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     # The supported types of request body
     SUPPORTED_TYPES = ['application/json', 'application/x-www-form-urlencoded', 'multipart/form-data']
 
     # The web server instance, holds the high-level logic
-    web_server: Server | None = None
+    web_server: Server
 
     response_code: int = 200
     # [['Header-Name', 'Header-Value']]
@@ -44,7 +47,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     query: Dict[str, List[str]] = {}
 
     # The user session, stored on the server
-    session: Dict[str, str]
+    session: Session
+
+    # cookies stored in the users browser
+    cookies: http.cookies
 
     # Used to check if the data was sent after the handler finished working.
     done = False
@@ -56,7 +62,25 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         super().__init__(request, client_address, server)
 
     def do(self, method):
-        # Parse the URL properly
+        # Fetch/create session
+        self.cookies = cookies.SimpleCookie()
+        cookie = self.headers.get("Cookie", failobj=None)
+        if cookie is not None:
+            self.cookies.load(cookie.replace('{', '').replace('}', ''))
+        if "sid" in self.cookies:
+            if self.cookies["sid"] not in self.web_server.sessions:
+                self.session = Session.Session()
+                self.cookies["sid"] = self.session.sessid
+                logger.debug("else branch")
+            else:
+                self.session = self.web_server.sessions[self.cookies["sid"]]
+            logger.debug("main branch")
+        else:
+            self.session = Session.Session()
+            self.cookies["sid"] = self.session.sessid
+            logger.debug("else branch")
+
+            # Parse the URL properly
         url = urllib.parse.urlparse(self.path)
         self.path = url.path
         self.query = urllib.parse.parse_qs(url.query)
@@ -68,7 +92,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if not self.done:
                 # The handler didn't send the response. Assume something went wrong
                 self.send_error(500)
-        else: # Didn't find a matching handler function
+        else:  # Didn't find a matching handler function
             self.send_error(404)
 
     def do_GET(self):
@@ -95,16 +119,16 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
                     # Guess the mimetype based on the file URL
                     content_type = mimetypes.guess_type(local_path)[0]
-                    if content_type is None: # If can't guess, assume plain text
+                    if content_type is None:  # If can't guess, assume plain text
                         content_type = "text/plain"
-                    self.send_response(200) # If we reached here, then it's a success
+                    self.send_response(200)  # If we reached here, then it's a success
                     self.send_header('Content-Type', content_type)
                     with open(local_path, 'rb') as file:
-                        filestat: os.stat_result = os.fstat(file.fileno()) # To get filesize and last modified
+                        filestat: os.stat_result = os.fstat(file.fileno())  # To get filesize and last modified
                         self.send_header("Content-Length", str(filestat[6]))
                         self.send_header("Last-Modified", self.date_time_string(int(filestat.st_mtime)))
                         self.end_headers()
-                        self.wfile.write(file.read()) # Send the file over
+                        self.wfile.write(file.read())  # Send the file over
                         file.close()
                     return
 
@@ -144,7 +168,11 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(self.response_code)
 
         contentTypeSent = False
+
         # Send all headers
+        self.send_header("Set-Cookie", "sid" + "=" + str(self.cookies["sid"].value))
+        # logger.debug("Set-Cookie " + "sid" + ": " + self.session.sessid)
+        # logger.debug("Set-Cookie " +  "sid" + ": " + str(self.cookies["sid"].value))
         for header in self.response_headers:
             self.send_header(*header)
             if header[0] == "Content-Type":
@@ -153,7 +181,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         # We have to have the Content-Type header, so if it's not present, we assume it's HTML
         # Because in this case it's us who's encoding this, we can safely specify the encoding
         if not contentTypeSent:
-            if self.response_content_type == "text/html": # REVIEW: HTML? Maybe something else?
+            if self.response_content_type == "text/html":  # REVIEW: HTML? Maybe something else?
                 self.response_content_type += "; charset=" + encoding
             self.send_header("Content-Type", self.response_content_type)
 
@@ -218,10 +246,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             # === Let the CGI module handle the multipart parse.
             # HACK: the cgi module requires the boundary to be in bytes, the artifact of python 2
             # noinspection PyTypeChecker
-            c_data['boundary'] = bytes(c_data['boundary'], 'utf-8') # type: ignore
+            c_data['boundary'] = bytes(c_data['boundary'], 'utf-8')  # type: ignore
             c_data['CONTENT-LENGTH'] = content_length
             # noinspection PyTypeChecker
-            form_data = parse_multipart(io.BytesIO(bytestring), c_data) # type: ignore
+            form_data = parse_multipart(io.BytesIO(bytestring), c_data)  # type: ignore
             # ==================================================
 
             form_files: Dict[str, List[Tuple[bytes, str]]] = {}
