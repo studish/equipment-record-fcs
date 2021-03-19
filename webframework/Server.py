@@ -21,8 +21,8 @@ class Server:
     server: http.server.HTTPServer
 
     # Main storage for all of the sessions stored on the server
-    #            sessid->Session
-    sessions: Dict[str, Session.Session]
+    #              sid->Session
+    sessions: Dict[str, Any]
 
     def __init__(self, server_class=http.server.HTTPServer, handler_class=RequestHandler):
         super().__init__()

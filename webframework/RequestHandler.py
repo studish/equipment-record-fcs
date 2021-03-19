@@ -62,23 +62,22 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         super().__init__(request, client_address, server)
 
     def do(self, method):
-        # Fetch/create session
         self.cookies = cookies.SimpleCookie()
         cookie = self.headers.get("Cookie", failobj=None)
         if cookie is not None:
             self.cookies.load(cookie.replace('{', '').replace('}', ''))
         if "sid" in self.cookies:
-            if self.cookies["sid"] not in self.web_server.sessions:
-                self.session = Session.Session()
-                self.cookies["sid"] = self.session.sessid
-                logger.debug("else branch")
+            logger.debug(self.web_server.sessions)
+            if str(self.cookies.get("sid").value) in self.web_server.sessions:
+                logger.debug(self.cookies["sid"])
+                self.session = self.web_server.sessions[str(self.cookies["sid"].value)]
             else:
-                self.session = self.web_server.sessions[self.cookies["sid"]]
-            logger.debug("main branch")
+                logger.debug("Couldn't find sid in global storage")
+                self.session = Session.Session()
+                self.cookies["sid"] = self.session.sid
         else:
             self.session = Session.Session()
-            self.cookies["sid"] = self.session.sessid
-            logger.debug("else branch")
+            self.cookies["sid"] = self.session.sid
 
             # Parse the URL properly
         url = urllib.parse.urlparse(self.path)
@@ -170,8 +169,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         contentTypeSent = False
 
         # Send all headers
+        self.web_server.sessions[str(self.session.sid)] = self.session
         self.send_header("Set-Cookie", "sid" + "=" + str(self.cookies["sid"].value))
-        # logger.debug("Set-Cookie " + "sid" + ": " + self.session.sessid)
+        # logger.debug("Set-Cookie " + "sid" + ": " + self.session.sid)
         # logger.debug("Set-Cookie " +  "sid" + ": " + str(self.cookies["sid"].value))
         for header in self.response_headers:
             self.send_header(*header)
