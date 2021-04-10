@@ -15,5 +15,5 @@ class Session:
         self.valid_until = datetime.datetime.now() + valid_for
         self.data = {}
 
-    def refresh(self):
-        pass
+    def refresh(self, valid_for=datetime.timedelta(minutes=15)):
+        self.valid_until = datetime.datetime.now() + valid_for

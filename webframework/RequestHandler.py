@@ -67,9 +67,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         if cookie is not None:
             self.cookies.load(cookie.replace('{', '').replace('}', ''))
         if "sid" in self.cookies:
-            logger.debug(self.web_server.sessions)
             if str(self.cookies.get("sid").value) in self.web_server.sessions:
-                logger.debug(self.cookies["sid"])
                 self.session = self.web_server.sessions[str(self.cookies["sid"].value)]
             else:
                 logger.debug("Couldn't find sid in global storage")
@@ -168,11 +166,16 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         contentTypeSent = False
 
+        # Save session
+        if self.session.sid not in self.web_server.sessions:
+            self.web_server.sessions[self.session.sid] = self.session
+            for cookie in self.cookies.output().splitlines():
+                regex = r"^([^:]+): (.+=.*)$"
+                matches = re.match(regex, cookie)
+                self.response_headers.append((matches.group(1), matches.group(2)))
+            logger.debug("Reached this part of the code")
+
         # Send all headers
-        self.web_server.sessions[str(self.session.sid)] = self.session
-        self.send_header("Set-Cookie", "sid" + "=" + str(self.cookies["sid"].value))
-        # logger.debug("Set-Cookie " + "sid" + ": " + self.session.sid)
-        # logger.debug("Set-Cookie " +  "sid" + ": " + str(self.cookies["sid"].value))
         for header in self.response_headers:
             self.send_header(*header)
             if header[0] == "Content-Type":
