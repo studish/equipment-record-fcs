@@ -2,3 +2,5 @@
 
 from webframework.Server import *
 from webframework.RequestHandler import *
+
+server = Server()

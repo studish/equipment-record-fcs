@@ -13,7 +13,7 @@ class Server:
     """
     Represents a web server
     """
-    
+
     #              method   path  handler
     handlers: Dict[str, Dict[str, Callable]] = {}
     #                         method    path    types
@@ -39,36 +39,42 @@ class Server:
         self.handlers[method][path] = handler
         if 'accept' in kwargs.keys():
             self.accept_content_types[method][path] = kwargs['accept']
-        logger.debug("Registered handler for {method} {path}: {handler}".format(method=method, path=path, handler=handler))
+        logger.debug(
+            "Registered handler for {method} {path}: {handler}".format(method=method, path=path, handler=handler))
 
     def get(self, path, **kwargs):
         def _(handler):
             self.__set_request_handler('GET', path, handler, **kwargs)
             return handler
+
         return _
 
-    def post(self, path: str, accept: List[str]=RequestHandler.SUPPORTED_TYPES, **kwargs: Dict[str, Any]) -> Callable:
+    def post(self, path: str, accept: List[str] = RequestHandler.SUPPORTED_TYPES, **kwargs: Dict[str, Any]) -> Callable:
         def _(handler: Callable) -> Callable:
             self.__set_request_handler('POST', path, handler, accept=accept, **kwargs)
             return handler
+
         return _
 
     def put(self, path, **kwargs):
         def _(handler):
             self.__set_request_handler('PUT', path, handler, **kwargs)
             return handler
+
         return _
 
     def delete(self, path, **kwargs):
         def _(handler):
             self.__set_request_handler('DELETE', path, handler, **kwargs)
             return handler
+
         return _
 
     def patch(self, path, **kwargs):
         def _(handler):
             self.__set_request_handler('PATCH', path, handler, **kwargs)
             return handler
+
         return _
 
     staticPaths: dict[str, str]
