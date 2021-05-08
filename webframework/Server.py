@@ -22,7 +22,7 @@ class Server:
 
     # Main storage for all of the sessions stored on the server
     #              sid->Session
-    sessions: Dict[str, Any]
+    sessions: Dict[str, Session]
 
     def __init__(self, server_class=http.server.HTTPServer, handler_class=RequestHandler):
         super().__init__()
