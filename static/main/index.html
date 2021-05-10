@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <link
+      rel="stylesheet"
+      href="/css/common.css"
+      type="text/css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      href="/css/main.css"
+      type="text/css"
+      media="screen"
+    />
+    <title>Список оборудования</title>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Place favicon.ico in the root directory -->
+  </head>
+  <body>
+    <div id="topbar">
+      <input
+        class="searchbar"
+        type="search"
+        name="search"
+        value=""
+        placeholder="Поиск..."
+      />
+      <span id="username">Фамилия Имя</span>
+      <button id="logoutBtn">Выход</button>
+    </div>
+    <div id="content">
+      <div id="sidebar">
+        <h2>Фильтр</h2>
+        <b>Виды оборудования</b>
+        <ul>
+          <li>
+            <input
+              type="checkbox"
+              name="filter[monoblocks]"
+              id="monoblockChk"
+            />
+            <label for="monoblockChk">Моноблоки</label>
+          </li>
+          <li>
+            <input type="checkbox" name="filter[printers]" id="printerChk" />
+            <label for="printerChk">Принтеры</label>
+          </li>
+          <li>
+            <input type="checkbox" name="filter[laptops]" id="laptopChk" />
+            <label for="laptopChk">Ноутбуки</label>
+          </li>
+          <li>
+            <input type="checkbox" name="filter[computers]" id="computerChk" />
+            <label for="computerChk">Компьютеры</label>
+          </li>
+          <li>
+            <input type="checkbox" name="filter[furniture]" id="furnitureChk" />
+            <label for="furnitureChk">Мебель</label>
+          </li>
+        </ul>
+        <hr />
+        <button>Показать результаты</button>
+      </div>
+      <div id="main">
+        <div class="itemCard shadow holderPresent">
+          <div>
+            <div class="invnum">998</div>
+            <div class="category">Моноблок</div>
+          </div>
+          <div class="displayName">Acer Aspire C22-820</div>
+          <div class="holdingStatus">Иванов И.И.</div>
+        </div>
+        <div class="itemCard shadow">
+          <div>
+            <div class="invnum">999</div>
+            <div class="category">Моноблок</div>
+          </div>
+          <div class="displayName">Acer Aspire C22-820</div>
+          <div class="holdingStatus"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
