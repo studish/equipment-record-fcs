@@ -4,7 +4,6 @@ import webframework
 from webframework import server
 import api.main
 
-
 server.serveStatic('/', './static')
 
 if __name__ == "__main__":

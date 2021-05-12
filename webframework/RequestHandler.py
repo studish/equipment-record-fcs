@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, List, Dict, Tuple
 if TYPE_CHECKING:
     from webframework.Server import Server
 
-pure_path_pattern = re.compile(r'^([^?#]+).*')
+pure_path_pattern = re.compile(r'^([^?#]+)(.*)')
 
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
@@ -94,8 +94,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         # Clean up the URL path for checkups
-        local_path = pure_path_pattern.match(self.path).group(1)
-
+        match = pure_path_pattern.match(self.path)
+        local_path = match.group(1)
         # If we don't have a handler for this path, try static first
         if local_path not in self.web_server.handlers['GET'].keys():
             # Check each static prefix - optimal because there aren't many prefixes
@@ -108,8 +108,12 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
                     # If we're pointing at a directory, try index.html
                     if os.path.isdir(local_path):
+                        # redirect if directory path doesnt't end with a '/'
+                        if not local_path.endswith('/'):
+                            self.redirect_to(match.group(1) + '/' + match.group(2))
+                            return
                         local_path = local_path.rstrip('/') + '/index.html'
-
+                    # 301 response
                     # If the file is not found, skip
                     if not os.path.isfile(local_path):
                         continue
@@ -130,6 +134,12 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     return
 
         self.do('GET')
+
+    def redirect_to(self, url: str):
+        self.send_response(301)
+        self.send_header('Location', url)
+        self.send_header('Content-Type', 'text/html')
+        self.wfile.write(f'<script>location.href={url}</script>'.encode())
 
     def do_POST(self):
         self.process_request_body()
