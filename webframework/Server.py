@@ -6,6 +6,7 @@ from webframework import Session
 import http.server
 from typing import List, Dict, Callable, Any
 
+# (host, port)
 default_server_address = ("", 8000)
 
 
@@ -25,7 +26,7 @@ class Server:
     sessions: Dict[str, Session.Session]
 
     def __init__(
-        self, server_class=http.server.HTTPServer, handler_class=RequestHandler
+            self, server_class=http.server.HTTPServer, handler_class=RequestHandler
     ):
         super().__init__()
         for method in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
@@ -87,6 +88,7 @@ class Server:
     def listen(self, host=default_server_address[0], port=default_server_address[1]):
         self.server.server_address = (host, port)
         try:
+            logger.info(f'listening at http://{"localhost" if not host else host}:{port}/')
             self.server.serve_forever()
         except KeyboardInterrupt:
             logger.info("Stopping the server...")

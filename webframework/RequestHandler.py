@@ -138,8 +138,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     def redirect_to(self, url: str):
         self.send_response(301)
         self.send_header('Location', url)
-        self.send_header('Content-Type', 'text/html')
-        self.wfile.write(f'<script>location.href={url}</script>'.encode())
+        self.send_header('Content-Type', 'text/html; charset=UTF-8')
+        self.end_headers()
+        self.wfile.write(f'<script>location.href="{url}"</script>'.encode())
 
     def do_POST(self):
         self.process_request_body()
