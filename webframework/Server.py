@@ -39,13 +39,10 @@ class Server:
 
     def __set_request_handler(self, method, path, handler, **kwargs):
         self.handlers[method][path] = handler
-        if "accept" in kwargs.keys():
-            self.accept_content_types[method][path] = kwargs["accept"]
+        if 'accept' in kwargs.keys():
+            self.accept_content_types[method][path] = kwargs['accept']
         logger.debug(
-            "Registered handler for {method} {path}: {handler}".format(
-                method=method, path=path, handler=handler
-            )
-        )
+            "Registered handler for {method} {path}: {handler}".format(method=method, path=path, handler=handler))
 
     def get(self, path, **kwargs):
         def _(handler):
@@ -54,12 +51,7 @@ class Server:
 
         return _
 
-    def post(
-        self,
-        path: str,
-        accept: List[str] = RequestHandler.SUPPORTED_TYPES,
-        **kwargs: Dict[str, Any]
-    ) -> Callable:
+    def post(self, path: str, accept: List[str] = RequestHandler.SUPPORTED_TYPES, **kwargs: Dict[str, Any]) -> Callable:
         def _(handler: Callable) -> Callable:
             self.__set_request_handler("POST", path, handler, accept=accept, **kwargs)
             return handler

@@ -1,42 +1,8 @@
 #!/usr/bin/env python3
 
 import webframework
-from utils import logger as logger
-import os
-
-
-server = webframework.Server()
-
-
-@server.get('/api/jsonExample')
-def index(handler: webframework.RequestHandler):
-    handler.send({
-        "key": "value",
-        "numkey": 1,
-        "boolkey": True
-    })
-
-
-@server.post('/postrequest')
-def postrequest(handler: webframework.RequestHandler):
-    if not os.path.isdir('./files'):
-        os.mkdir('./files')
-    for key in handler.post_files:
-        for file, filename in handler.post_files[key]:
-            logger.debug("Saving %s...", filename)
-            with open('./files/' + filename, 'wb') as f:
-                f.write(file)
-                f.close()
-    handler.send({
-        "data": handler.post_data,
-        "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
-    })
-
-
-@server.get('/unicodeTest')
-def uwu(handler):
-    handler.send('<h1>ТЕСТ</h1><p>Если это видно, значит юникод обрабатывается корректно!</p><img src="./favicon.ico" />')
-
+from webframework import server
+import api.main
 
 server.serveStatic('/', './static')
 
