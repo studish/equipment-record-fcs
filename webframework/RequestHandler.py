@@ -30,7 +30,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     response_code: int = 200
     # [['Header-Name', 'Header-Value']]
-    response_headers: List[List[str]] = []
+    response_headers: List[List[str] | Tuple[str]] = []
     response_content_type: str = "text/html"
 
     # Formatted like JSON. If the content-type is form-data, it's a dict.
@@ -62,6 +62,25 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         super().__init__(request, client_address, server)
 
     def do(self, method):
+        url = urllib.parse.urlparse(self.path)
+        self.path = url.path
+        self.query = urllib.parse.parse_qs(url.query)
+
+        for mid in self.web_server.middlewares[method][self.path]:
+            if not mid(self):
+                return
+
+                # Try to find a matching handler function among the ones defined by the server
+        if self.path in self.web_server.handlers[method].keys():
+            # Call the handler
+            self.web_server.handlers[method][self.path](self)
+            if not self.done:
+                # The handler didn't send the response. Assume something went wrong
+                self.send_error(500)
+        else:  # Didn't find a matching handler function
+            self.send_error(404)
+
+    def init_cookies(self):
         self.cookies = cookies.SimpleCookie()
         cookie = self.headers.get("Cookie", failobj=None)
         if cookie is not None:
@@ -78,24 +97,13 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.cookies["sid"] = self.session.sid
 
             # Parse the URL properly
-        url = urllib.parse.urlparse(self.path)
-        self.path = url.path
-        self.query = urllib.parse.parse_qs(url.query)
-
-        # Try to find a matching handler function among the ones defined by the server
-        if self.path in self.web_server.handlers[method].keys():
-            # Call the handler
-            self.web_server.handlers[method][self.path](self)
-            if not self.done:
-                # The handler didn't send the response. Assume something went wrong
-                self.send_error(500)
-        else:  # Didn't find a matching handler function
-            self.send_error(404)
 
     def do_GET(self):
+        self.init_cookies()
         # Clean up the URL path for checkups
         match = pure_path_pattern.match(self.path)
         local_path = match.group(1)
+
         # If we don't have a handler for this path, try static first
         if local_path not in self.web_server.handlers['GET'].keys():
             # Check each static prefix - optimal because there aren't many prefixes
@@ -136,28 +144,30 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.do('GET')
 
     def redirect_to(self, url: str):
-        self.send_response(301)
-        self.send_header('Location', url)
-        self.send_header('Content-Type', 'text/html; charset=UTF-8')
-        self.end_headers()
-        self.wfile.write(f'<script>location.href="{url}"</script>'.encode())
+        self.response_code = 301
+        self.response_headers.append(('Location', url))
+        self.send(f'<script>location.href="{url}"</script>', send_cookies=False)
 
     def do_POST(self):
+        self.init_cookies()
         self.process_request_body()
         self.do('POST')
 
     def do_PUT(self):
+        self.init_cookies()
         self.process_request_body()
         self.do('PUT')
 
     def do_DELETE(self):
+        self.init_cookies()
         self.do('DELETE')
 
     def do_PATCH(self):
+        self.init_cookies()
         self.process_request_body()
         self.do('PATCH')
 
-    def send(self, data_raw: str | dict | list | bytes, encoding="utf-8"):
+    def send(self, data_raw: str | dict | list | bytes, encoding="utf-8", send_cookies=True):
         data: bytes
         # Dict / List -> JSON string -> encoded bytes
         if type(data_raw) is dict or type(data_raw) is list:
@@ -178,11 +188,12 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         contentTypeSent = False
 
         # Save session
-        if self.session.sid not in self.web_server.sessions:
+        if send_cookies and self.session.sid not in self.web_server.sessions:
             self.web_server.sessions[self.session.sid] = self.session
             for cookie in self.cookies.output().splitlines():
                 regex = r"^([^:]+): (.+=.*)$"
                 matches = re.match(regex, cookie)
+                self.response_headers.append((matches.group(1), matches.group(2)))
                 self.response_headers.append((matches.group(1), matches.group(2)))
             logger.debug("Reached this part of the code")
 

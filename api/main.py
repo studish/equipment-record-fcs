@@ -4,7 +4,15 @@ from utils import logger as logger
 import os
 
 
-@server.get("/api/version")
+def checkauth(handler: webframework.RequestHandler):
+    if handler.session.sid not in server.sessions.keys():
+        handler.redirect_to("/login")
+        return False
+    # TODO: Check if authorized
+    return True
+
+
+@server.get("/api/version", middleware=[checkauth])
 def version(handler: webframework.RequestHandler):
     handler.send("1.0")
 

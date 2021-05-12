@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a36a5392bb1e8bbc06bfaa0761e52593cf2d83b486696bf54667ba8da616c839"
+            "sha256": "7bc8cfb66fe676ee517596daea9f8a3d4651084d0187d0e151efb7d6ad894c60"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -15,6 +15,22 @@
             }
         ]
     },
-    "default": {},
+    "default": {
+        "mariadb": {
+            "hashes": [
+                "sha256:198c5838feffbfba7a2170f03170aec1b5628a2247365321a71fc5302f584331",
+                "sha256:53fec3d910616b8c3aa1631cbf82a8b4fc0329ecec79c799c670d1e93e0ee0ca",
+                "sha256:6937a848408bc249c7c7f8b14bd0ecf4e7b3364544a6b3255df5831fb733191f",
+                "sha256:6a299506339f8f7ddb136b5c8e9babc3497c3167be5f6e322638f772bdee3fa3",
+                "sha256:838fc5a365e1c89bf4c5733a06b67bd512a3aa96672a92d608aab2e5c114423c",
+                "sha256:aeb692f0748e22a5aa7a15c30a2921a57de940008b3937a56840d3c2db257e1b",
+                "sha256:b661afc956a74ed105955eea8bc3233bb2ce203a2e6131e1a692d256d732d4f9",
+                "sha256:c69b56152632e6af6de0aa1615ce69d3bf92970b0b197f8e3c025c7f55b63e39",
+                "sha256:ee6072c120c303c62e5ed2e896225d24d152e38d624c977f8ad287edb9855c3b"
+            ],
+            "index": "pypi",
+            "version": "==1.0.6"
+        }
+    },
     "develop": {}
 }

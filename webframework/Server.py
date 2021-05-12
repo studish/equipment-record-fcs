@@ -17,6 +17,7 @@ class Server:
 
     #              method   path  handler
     handlers: Dict[str, Dict[str, Callable]] = {}
+    middlewares: Dict[str, Dict[str, List[Callable[[RequestHandler], bool]]]] = {}
     #                         method    path    types
     accept_content_types: Dict[str, Dict[str, List[str]]] = {}
     server: http.server.HTTPServer
@@ -32,14 +33,19 @@ class Server:
         for method in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
             self.handlers[method] = {}
             self.accept_content_types[method] = {}
+            self.middlewares[method] = {}
         self.server = server_class(default_server_address, handler_class)
         if handler_class is RequestHandler:
             handler_class.web_server = self
         self.staticPaths = {}
         self.sessions = {}
 
-    def __set_request_handler(self, method, path, handler, **kwargs):
+    def __set_request_handler(self, method, path, handler, middleware: List[Callable[[RequestHandler], bool]] = None,
+                              **kwargs):
+        if middleware is None:
+            middleware = []
         self.handlers[method][path] = handler
+        self.middlewares[method][path] = middleware
         if 'accept' in kwargs.keys():
             self.accept_content_types[method][path] = kwargs['accept']
         logger.debug(
