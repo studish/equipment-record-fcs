@@ -46,3 +46,8 @@ def postrequest(handler: webframework.RequestHandler):
 def uwu(handler):
     handler.send(
         '<h1>ТЕСТ</h1><p>Если это видно, значит юникод обрабатывается корректно!</p><img src="./favicon.ico" />')
+
+
+@server.post('/testred')
+def red(handler: webframework.RequestHandler):
+    handler.redirect_to('/main')

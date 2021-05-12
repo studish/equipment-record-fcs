@@ -35,7 +35,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     # Formatted like JSON. If the content-type is form-data, it's a dict.
     # If it's application/json, this can be anything.
-    post_data: dict or list
+    post_data: dict or list or Dict[str, List[str]]
 
     # field-name -> list of pairs (file_content, file_name)
     post_files: Dict[str, List[Tuple[bytes, str]]]
@@ -66,12 +66,11 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.path = url.path
         self.query = urllib.parse.parse_qs(url.query)
 
-        for mid in self.web_server.middlewares[method][self.path]:
-            if not mid(self):
-                return
-
-                # Try to find a matching handler function among the ones defined by the server
+        # Try to find a matching handler function among the ones defined by the server
         if self.path in self.web_server.handlers[method].keys():
+            for mid in self.web_server.middlewares[method][self.path]:
+                if not mid(self):
+                    return
             # Call the handler
             self.web_server.handlers[method][self.path](self)
             if not self.done:
@@ -144,8 +143,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.do('GET')
 
     def redirect_to(self, url: str):
-        self.response_code = 301
-        self.response_headers.append(('Location', url))
+        self.response_code = 200  # без содержательных кодов
+        # self.response_headers.append(('Location', url))
         self.send(f'<script>location.href="{url}"</script>', send_cookies=False)
 
     def do_POST(self):
@@ -193,7 +192,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             for cookie in self.cookies.output().splitlines():
                 regex = r"^([^:]+): (.+=.*)$"
                 matches = re.match(regex, cookie)
-                self.response_headers.append((matches.group(1), matches.group(2)))
                 self.response_headers.append((matches.group(1), matches.group(2)))
             logger.debug("Reached this part of the code")
 
