@@ -8,11 +8,11 @@ def connection(user: str) -> tuple:
 
     conn = mariadb.connect(
         host='localhost',
-        user='localhost',
+        user=user,
         password=config.get('PasswordSection', user),
         db='equipment-record'
     )
 
     cur = conn.cursor()
-    
+
     return conn, cur

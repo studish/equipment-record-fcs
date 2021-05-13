@@ -14,6 +14,9 @@ class Session:
         self.sid = str(uuid.uuid1())
         self.valid_until = datetime.datetime.now() + valid_for
         self.data = {}
+        self.authorized = False
+        self.username = ''
+        self.admin = False
 
     def refresh(self, valid_for=datetime.timedelta(minutes=15)):
         self.valid_until = datetime.datetime.now() + valid_for
