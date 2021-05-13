@@ -11,7 +11,7 @@ db = DI.DI()
 #     if handler.session.sid not in server.sessions.keys():
 #         handler.redirect_to("/login")
 #         return False
-#     # TODO: Check if authorized
+#     # Check if authorized ?to do?
 #     return True
 # @server.get("/api/path", middlewares=[checkauth])
 
@@ -31,7 +31,7 @@ def postrequest(handler: webframework.RequestHandler):
             with open('./files/' + filename, 'wb') as f:
                 f.write(file)
                 f.close()
-                # "(.*)(\.*)?"
+                # "(.*)(\.*)?" // в базу добавлять (первые [100 - длина (. + расширение)]) + . + расширение
     handler.send({
         "data": handler.post_data,
         "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
@@ -46,8 +46,8 @@ def uwu(handler):
 
 @server.post('/api/login')
 def login(handler: webframework.RequestHandler):
-    username = handler.post_data["username"]
-    password = handler.post_data["password"]
+    username = handler.post_data["username"][0]
+    password = handler.post_data["password"][0]
 
     db.authenticate_user(handler, username, password)
 

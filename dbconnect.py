@@ -10,7 +10,8 @@ def connection(user: str) -> tuple:
         host='localhost',
         user=user,
         password=config.get('PasswordSection', user),
-        db='equipment-record'
+        port=3306,
+        db='equipment_record'
     )
 
     cur = conn.cursor()

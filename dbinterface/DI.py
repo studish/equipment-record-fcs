@@ -16,12 +16,14 @@ class DI:
     def authenticate_user(handler, username: str, password: str):
         try:
             conn, cur = dbconnect.connection('erfcs_admin')
-            cur.execute("SELECT user_type FROM test.contacts", (username, password))
-            # if authentication successful
-            # execute select and if username and password are correct then True
-            # handler.session.authorized = True
-            # handler.session.username = username
-            # handler.admin = from db response
+            cur.execute("SELECT username, user_type FROM equipment_record.user WHERE username=? AND password_hash=?",
+                        (username, sha512(password.encode()).hexdigest()))
+            for login, user_type in cur:
+                if user_type[0] == 'ADMIN':
+                    handler.session.admin = True
+
+            handler.session.authorized = True
+            handler.session.username = username
 
             conn.close()
         except Exception as e:
