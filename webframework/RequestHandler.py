@@ -47,10 +47,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     query: Dict[str, List[str]] = {}
 
     # The user session, stored on the server
-    session: Session
+    session: Session.Session
 
     # cookies stored in the users browser
-    cookies: http.cookies
+    cookies: http.cookies.SimpleCookie
 
     # Used to check if the data was sent after the handler finished working.
     done = False
