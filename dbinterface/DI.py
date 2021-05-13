@@ -1,4 +1,5 @@
 import mariadb
+from hashlib import sha512
 
 
 class DI:
@@ -6,4 +7,5 @@ class DI:
 
     def __init__(self, username):
         # get from db user access level
+
         pass
