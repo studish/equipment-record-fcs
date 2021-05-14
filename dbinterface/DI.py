@@ -18,7 +18,9 @@ class DI:
             conn, cur = dbconnect.connection('erfcs_admin')
             password_hash = sha512(password.encode()).hexdigest()
             cur.execute(
-                "SELECT login, password_hash, user_type FROM equipment_record_fcs.user WHERE login=? AND password_hash=?",
+                "SELECT login, password_hash, user_type "
+                "FROM equipment_record_fcs.user "
+                "WHERE login=? AND password_hash=?",
                 (username, password_hash))
 
             for login, password_hash, user_type in cur:
@@ -33,3 +35,21 @@ class DI:
         except Exception as e:
             return False, str(e)
         return False, "Incorrect credentials."
+
+    @staticmethod
+    def get_user(user_id: int):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute("SELECT id, user_type, display_name FROM equipment_record_fcs.user WHERE user.id=?", (user_id,))
+
+            for _id, user_type, display_name in cur:
+                return True, "", {
+                    "id": _id,
+                    "user_type": user_type,
+                    "display_name": display_name
+                }
+
+            conn.close()
+        except Exception as e:
+            return False, str(e), None
+        return False, "No such user.", None

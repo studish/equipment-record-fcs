@@ -1,4 +1,3 @@
-import email.utils
 import webframework
 from webframework import server
 from utils import logger as logger
@@ -52,11 +51,11 @@ def login(handler: webframework.RequestHandler):
         password = handler.post_data["password"]
         logger.debug('username ' + username)
         logger.debug('password ' + password)
-        success, errorMessage = db.authenticate_user(handler, username, password)
+        success, error_message = db.authenticate_user(handler, username, password)
 
         handler.send({
             "success": success,
-            "errorMessage": errorMessage,
+            "errorMessage": error_message,
             "data": {
                 "authorized": handler.session.authorized,
                 "username": handler.session.username,
@@ -66,7 +65,7 @@ def login(handler: webframework.RequestHandler):
     except KeyError:
         handler.send({
             "success": False,
-            "errorMessage": "wrong request body format"
+            "error_message": "wrong request body format"
         })
 
 
@@ -92,6 +91,18 @@ def check_auth(handler: webframework.RequestHandler):
         }
     })
 
+
 # get /api/download
 # file = conn.execute('select file from file where id=?', (handler.query["id"][0]))
 # handler.send(cur)
+
+
+@server.get('/api/user')
+def get_user(handler: webframework.RequestHandler):
+    success, error_message, user_data = db.get_user(int(handler.query["id"][0]))
+
+    handler.send({
+        "success": success,
+        "errorMessage": error_message,
+        "data": user_data
+    })
