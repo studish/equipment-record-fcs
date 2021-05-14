@@ -16,7 +16,7 @@ class DI:
     def authenticate_user(handler, username: str, password: str):
         try:
             conn, cur = dbconnect.connection('erfcs_admin')
-            cur.execute("SELECT username, user_type FROM equipment_record.user WHERE username=? AND password_hash=?",
+            cur.execute("SELECT login, user_type FROM equipment_record.user WHERE login=? AND password_hash=?",
                         (username, sha512(password.encode()).hexdigest()))
             for login, user_type in cur:
                 if user_type[0] == 'ADMIN':

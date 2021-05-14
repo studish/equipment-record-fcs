@@ -58,7 +58,20 @@ def login(handler: webframework.RequestHandler):
     })
 
 
-@server.get('/api/checkauth')
+@server.post('/api/logout')
+def logout(handler: webframework.RequestHandler):
+    handler.session.authorized = False
+    handler.session.username = ""
+    handler.session.admin = False
+
+    handler.send({
+        "authorized": handler.session.authorized,
+        "username": handler.session.username,
+        "adminRole": handler.session.admin,
+    })
+
+
+@server.get('/api/checkAuth')
 def checkauth(handler: webframework.RequestHandler):
     handler.send({
         "authorized": handler.session.authorized,
