@@ -16,15 +16,20 @@ class DI:
     def authenticate_user(handler, username: str, password: str):
         try:
             conn, cur = dbconnect.connection('erfcs_admin')
-            cur.execute("SELECT login, user_type FROM equipment_record.user WHERE login=? AND password_hash=?",
-                        (username, sha512(password.encode()).hexdigest()))
-            for login, user_type in cur:
-                if user_type[0] == 'ADMIN':
-                    handler.session.admin = True
+            password_hash = sha512(password.encode()).hexdigest()
+            cur.execute(
+                "SELECT login, password_hash, user_type FROM equipment_record_fcs.user WHERE login=? AND password_hash=?",
+                (username, password_hash))
 
-            handler.session.authorized = True
-            handler.session.username = username
+            for login, password_hash, user_type in cur:
+                if login == username and password_hash == password_hash:
+                    if user_type[0] == 'ADMIN':
+                        handler.sion.admin = True
+                    handler.session.authorized = True
+                    handler.session.username = username
+                    return True, ""
 
             conn.close()
         except Exception as e:
-            logger.exception(e)
+            return False, str(e)
+        return False, "Incorrect credentials."

@@ -11,7 +11,7 @@ def connection(user: str) -> tuple:
         user=user,
         password=config.get('PasswordSection', user),
         port=3306,
-        db='equipment_record'
+        db='equipment_record_fcs'
     )
 
     cur = conn.cursor()

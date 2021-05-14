@@ -1,3 +1,4 @@
+import email.utils
 import webframework
 from webframework import server
 from utils import logger as logger
@@ -46,16 +47,27 @@ def uwu(handler):
 
 @server.post('/api/login')
 def login(handler: webframework.RequestHandler):
-    username = handler.post_data["username"][0]
-    password = handler.post_data["password"][0]
+    try:
+        username = handler.post_data["username"]
+        password = handler.post_data["password"]
+        logger.debug('username ' + username)
+        logger.debug('password ' + password)
+        success, errorMessage = db.authenticate_user(handler, username, password)
 
-    db.authenticate_user(handler, username, password)
-
-    handler.send({
-        "authorized": handler.session.authorized,
-        "username": handler.session.username,
-        "adminRole": handler.session.admin,
-    })
+        handler.send({
+            "success": success,
+            "errorMessage": errorMessage,
+            "data": {
+                "authorized": handler.session.authorized,
+                "username": handler.session.username,
+                "adminRole": handler.session.admin,
+            }
+        })
+    except KeyError:
+        handler.send({
+            "success": False,
+            "errorMessage": "wrong request body format"
+        })
 
 
 @server.post('/api/logout')
@@ -65,16 +77,21 @@ def logout(handler: webframework.RequestHandler):
     handler.session.admin = False
 
     handler.send({
-        "authorized": handler.session.authorized,
-        "username": handler.session.username,
-        "adminRole": handler.session.admin,
+        "success": True,
     })
 
 
 @server.get('/api/checkAuth')
-def checkauth(handler: webframework.RequestHandler):
+def check_auth(handler: webframework.RequestHandler):
     handler.send({
-        "authorized": handler.session.authorized,
-        "username": handler.session.username,
-        "adminRole": handler.session.admin,
+        "success": True,
+        "data": {
+            "authorized": handler.session.authorized,
+            "username": handler.session.username,
+            "adminRole": handler.session.admin,
+        }
     })
+
+# get /api/download
+# file = conn.execute('select file from file where id=?', (handler.query["id"][0]))
+# handler.send(cur)
