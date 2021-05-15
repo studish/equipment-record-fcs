@@ -203,8 +203,8 @@ def get_inquiry_file_excel(handler: webframework.RequestHandler):
 @server.get('/api/inquiries')
 def get_inquiries(handler: webframework.RequestHandler):
     try:
-        success, error_message, data = db.get_inquiries(status=handler.query["status"][0],
-                                                        offset=handler.query["offset"][0])
+        success, data = db.get_inquiries(status=handler.query["status"][0],
+                                         offset=handler.query["offset"][0])
         handler.send({
             "success": True,
             "errorMessage": "",

@@ -122,7 +122,7 @@ class DI:
             else:
                 cur.execute(query, (search, search, search, search))
             query += "LIMIT 20 OFFSET ?"
-            count = cur.rowcount
+
             for id, invid, category, display_name, serial_num, price, available, desc in cur:
                 invitem_list.append({
                     "id": id,
@@ -134,7 +134,8 @@ class DI:
                     "available": price,
                     "description": desc
                 })
-
+            cur.execute("SELECT FOUND_ROWS()")
+            (count, ) = cur.fetchone()
             conn.close()
             return True, "", count, invitem_list
         except Exception as e:
@@ -158,7 +159,6 @@ class DI:
                     "itemId": itemid,
                     "files": json.loads(f'[{file_json_list}]')
                 })
-
             conn.close()
             return True, "", data
         except Exception as e:
@@ -209,7 +209,7 @@ class DI:
                 })
 
             conn.close()
-            return inquiries
+            return True, inquiries
 
         except Exception as e:
             raise
