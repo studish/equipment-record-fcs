@@ -99,7 +99,7 @@ def check_auth(handler: webframework.RequestHandler):
 
 @server.get('/api/user')
 def get_user(handler: webframework.RequestHandler):
-    success, error_message, user_data = db.get_user(int(handler.query["id"][0]))
+    success, error_message, user_data = db.get_user(handler.query["id"][0])
 
     handler.send({
         "success": success,

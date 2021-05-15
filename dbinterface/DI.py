@@ -37,10 +37,11 @@ class DI:
         return False, "Incorrect credentials."
 
     @staticmethod
-    def get_user(user_id: int):
+    def get_user(user_id: str):
         try:
             conn, cur = dbconnect.connection('erfcs_admin')
-            cur.execute("SELECT id, user_type, display_name FROM equipment_record_fcs.user WHERE user.id=?", (user_id,))
+            cur.execute("SELECT id, user_type, display_name FROM equipment_record_fcs.user WHERE user.id=?",
+                        (int(user_id),))
 
             for _id, user_type, display_name in cur:
                 return True, "", {
