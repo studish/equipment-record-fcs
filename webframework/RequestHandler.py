@@ -110,10 +110,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             # Check each static prefix - optimal because there aren't many prefixes
             for prefix, local_dir_path in self.web_server.staticPaths.items():
                 if self.path.startswith(prefix):
-                    # logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
                     local_path = local_dir_path + local_path
-                    # logger.debug(localPath)
-                    # TODO: Injection protection!
 
                     # If we're pointing at a directory, try index.html
                     if os.path.isdir(local_path):
@@ -150,7 +147,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     def redirect_to(self, url: str):
         self.response_code = 200  # без содержательных кодов
-        # self.response_headers.append(('Location', url))
         self.send(f'<script>location.href="{url}"</script>', send_cookies=False)
 
     def do_POST(self):

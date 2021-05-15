@@ -7,42 +7,26 @@ from dbinterface import DI
 db = DI.DI()
 
 
-# def checkauth(handler: webframework.RequestHandler):
-#     if handler.session.sid not in server.sessions.keys():
-#         handler.redirect_to("/login")
-#         return False
-#     # Check if authorized ?to do?
-#     return True
-# @server.get("/api/path", middlewares=[checkauth])
-
-
 @server.get("/api/version")
 def version(handler: webframework.RequestHandler):
     handler.send("1.0")
 
 
-@server.post('/postrequest')
-def postrequest(handler: webframework.RequestHandler):
-    if not os.path.isdir('./files'):
-        os.mkdir('./files')
-    for key in handler.post_files:
-        for file, filename in handler.post_files[key]:
-            logger.debug("Saving %s...", filename)
-            with open('./files/' + filename, 'wb') as f:
-                f.write(file)
-                f.close()
-                # "(.*)(\.*)?" // в базу добавлять (первые [100 - длина (. + расширение)]) + . + расширение
-    handler.send({
-        "data": handler.post_data,
-        "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
-    })
-
-
-@server.get('/unicodeTest')
-def uwu(handler):
-    handler.send(
-        '<h1>ТЕСТ</h1><p>Если это видно, значит юникод обрабатывается корректно!</p><img src="./favicon.ico" />')
-
+# @server.post('/postrequest')
+# def postrequest(handler: webframework.RequestHandler):
+#     if not os.path.isdir('./files'):
+#         os.mkdir('./files')
+#     for key in handler.post_files:
+#         for file, filename in handler.post_files[key]:
+#             logger.debug("Saving %s...", filename)
+#             with open('./files/' + filename, 'wb') as f:
+#                 f.write(file)
+#                 f.close()
+#                 # "(.*)(\.*)?" // в базу добавлять (первые [100 - длина (. + расширение)]) + . + расширение
+#     handler.send({
+#         "data": handler.post_data,
+#         "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
+#     })
 
 @server.post('/api/login')
 def login(handler: webframework.RequestHandler):
@@ -67,42 +51,131 @@ def login(handler: webframework.RequestHandler):
             "success": False,
             "error_message": "wrong request body format"
         })
+    except Exception as e:
+        handler.send_error(400)
 
 
 @server.post('/api/logout')
 def logout(handler: webframework.RequestHandler):
-    handler.session.authorized = False
-    handler.session.username = ""
-    handler.session.admin = False
+    try:
+        handler.session.authorized = False
+        handler.session.username = ""
+        handler.session.admin = False
 
-    handler.send({
-        "success": True,
-    })
+        handler.send({
+            "success": True,
+        })
+    except Exception as e:
+        handler.send_error(400)
 
 
 @server.get('/api/checkAuth')
 def check_auth(handler: webframework.RequestHandler):
-    handler.send({
-        "success": True,
-        "data": {
-            "authorized": handler.session.authorized,
-            "username": handler.session.username,
-            "adminRole": handler.session.admin,
-        }
-    })
-
-
-# get /api/download
-# file = conn.execute('select file from file where id=?', (handler.query["id"][0]))
-# handler.send(cur)
+    try:
+        handler.send({
+            "success": True,
+            "data": {
+                "authorized": handler.session.authorized,
+                "username": handler.session.username,
+                "adminRole": handler.session.admin,
+            }
+        })
+    except Exception as e:
+        handler.send_error(400)
 
 
 @server.get('/api/user')
 def get_user(handler: webframework.RequestHandler):
-    success, error_message, user_data = db.get_user(handler.query["id"][0])
+    try:
+        success, error_message, user_data = db.get_user_by_id(handler.query["id"][0])
+
+        handler.send({
+            "success": success,
+            "errorMessage": error_message,
+            "data": user_data
+        })
+    except Exception as e:
+        handler.send_error(400)
+
+
+@server.get('/api/download')
+def get_file(handler: webframework.RequestHandler):
+    try:
+        binary_data, file_name = db.get_file_by_id(handler.query["id"][0])
+
+        if binary_data is not None:
+            handler.response_headers.append(('Content-Disposition', f'attachment; filename="{file_name}"'))
+            handler.response_headers.append(('Content-Type', 'application/octet-stream'))
+            handler.send(binary_data)
+        elif file_name == "No such file":
+            handler.send_error(404)
+    except KeyError:
+        handler.send_error(400)
+    except Exception as e:
+        logger.exception(e)
+        handler.send_error(500)
+
+
+@server.get('/api/users')
+def get_users(handler: webframework.RequestHandler):
+    success, error_message, user_data_list = db.get_user_list()
 
     handler.send({
         "success": success,
         "errorMessage": error_message,
-        "data": user_data
+        "data": user_data_list
     })
+
+
+@server.get('/api/files')
+def get_files(handler: webframework.RequestHandler):
+    try:
+        file_list = db.get_log_files(handler.query["logid"][0])
+
+        handler.send({
+            "success": True,
+            "data": file_list
+        })
+    except Exception as e:
+        logger.exception(e)
+
+
+@server.get('/api/items')
+def get_items(handler: webframework.RequestHandler):
+    try:
+        if "search" in handler.query.keys():
+            search_query = handler.query["search"][0]
+        else:
+            search_query = ''
+
+        if "categories" in handler.query:
+            categories = list(map(lambda x: f"'{x}'", handler.query["categories"][0].split(',')))
+        else:
+            categories = []
+
+        success, error_message, count, data = db.get_item_list(search=search_query,
+                                                               offset=handler.query["offset"][0],
+                                                               categories=categories)
+        handler.send({
+            "success": success,
+            "errorMessage": error_message,
+            "data": {
+                "count": count,
+                "items": data
+            }
+        })
+    except Exception as e:
+        logger.exception(e)
+
+
+@server.get('/api/logs')
+def get_logs(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.get_logs(handler.query["itemid"][0])
+        handler.send({
+            "success": success,
+            "errorMessage": error_message,
+            "data": data
+        })
+    except Exception:
+        handler.send_error(400)
