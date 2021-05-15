@@ -20,7 +20,21 @@
       </button>
     </div>
     <div class="content">
+      <Pagination
+        :count="itemsCount"
+        @offset="(x) => (offset = x)"
+        :pagesize="20"
+        :offset="offset"
+      />
+
       <ItemCard v-for="item in items" :key="item.id" :item="item"></ItemCard>
+
+      <Pagination
+        :count="itemsCount"
+        @offset="(x) => (offset = x)"
+        :pagesize="20"
+        :offset="offset"
+      />
     </div>
   </div>
 </template>
@@ -28,6 +42,7 @@
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
 import ItemCard from "../components/ItemCard.vue";
+import Pagination from "../components/Pagination.vue";
 import { itemCategory, IInventoryItem } from "../typings/interfaces";
 
 @Options({
@@ -36,6 +51,10 @@ import { itemCategory, IInventoryItem } from "../typings/interfaces";
     filter() {
       return;
     },
+    offset() {
+      console.log("Loading");
+      this.loadResults();
+    },
     searchTerm() {
       if (this.timer !== -1) {
         clearTimeout(this.timer);
@@ -43,7 +62,7 @@ import { itemCategory, IInventoryItem } from "../typings/interfaces";
       this.timer = setTimeout(this.loadResults, 1000);
     },
   },
-  components: { ItemCard },
+  components: { ItemCard, Pagination },
   props: {
     searchTerm: String,
   },
@@ -56,6 +75,7 @@ export default class MainPage extends Vue {
   timer = -1;
   items: IInventoryItem[] = [];
   itemsCount = 0;
+  offset = 0;
 
   filter = {
     category: {} as Record<string, boolean>,
@@ -63,10 +83,6 @@ export default class MainPage extends Vue {
 
   capitalize(str: string): string {
     return str[0].toUpperCase() + str.slice(1, str.length);
-  }
-
-  get offset(): number {
-    return 0;
   }
 
   searchTerm!: string;
