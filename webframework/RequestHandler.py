@@ -64,6 +64,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     def do(self, method):
         url = urllib.parse.urlparse(self.path)
         self.path = url.path
+        self.path = url.path
         self.query = urllib.parse.parse_qs(url.query)
 
         # Try to find a matching handler function among the ones defined by the server
@@ -88,14 +89,15 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             if str(self.cookies.get("sid").value) in self.web_server.sessions:
                 self.session = self.web_server.sessions[str(self.cookies["sid"].value)]
             else:
-                logger.debug("Couldn't find sid in global storage")
                 self.session = Session.Session()
-                self.cookies["sid"] = self.session.sid
+                self.session.sid = self.cookies["sid"].value
         else:
             self.session = Session.Session()
             self.cookies["sid"] = self.session.sid
+            self.cookies["sid"]["path"] = '/'
+            self.cookies["sid"]["samesite"] = 'Lax'
 
-            # Parse the URL properly
+        # Parse the URL properly
 
     def do_GET(self):
         self.init_cookies()
@@ -108,10 +110,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             # Check each static prefix - optimal because there aren't many prefixes
             for prefix, local_dir_path in self.web_server.staticPaths.items():
                 if self.path.startswith(prefix):
-                    # logger.debug("Prefix converted: '{}' -> '{}'".format(prefix, localDirPath))
                     local_path = local_dir_path + local_path
-                    # logger.debug(localPath)
-                    # TODO: Injection protection!
 
                     # If we're pointing at a directory, try index.html
                     if os.path.isdir(local_path):
@@ -125,6 +124,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     if not os.path.isfile(local_path):
                         continue
 
+                    self.make_cookies(True)
+
                     # Guess the mimetype based on the file URL
                     content_type = mimetypes.guess_type(local_path)[0]
                     if content_type is None:  # If can't guess, assume plain text
@@ -135,6 +136,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                         filestat: os.stat_result = os.fstat(file.fileno())  # To get filesize and last modified
                         self.send_header("Content-Length", str(filestat[6]))
                         self.send_header("Last-Modified", self.date_time_string(int(filestat.st_mtime)))
+                        for header in self.response_headers:
+                            self.send_header(*header)
                         self.end_headers()
                         self.wfile.write(file.read())  # Send the file over
                         file.close()
@@ -144,7 +147,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
     def redirect_to(self, url: str):
         self.response_code = 200  # без содержательных кодов
-        # self.response_headers.append(('Location', url))
         self.send(f'<script>location.href="{url}"</script>', send_cookies=False)
 
     def do_POST(self):
@@ -186,14 +188,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         contentTypeSent = False
 
-        # Save session
-        if send_cookies and self.session.sid not in self.web_server.sessions:
-            self.web_server.sessions[self.session.sid] = self.session
-            for cookie in self.cookies.output().splitlines():
-                regex = r"^([^:]+): (.+=.*)$"
-                matches = re.match(regex, cookie)
-                self.response_headers.append((matches.group(1), matches.group(2)))
-            logger.debug("Reached this part of the code")
+        self.make_cookies(send_cookies)
 
         # Send all headers
         for header in self.response_headers:
@@ -214,6 +209,15 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         # We just sent the data, mark as done.
         self.done = True
+
+    def make_cookies(self, send_cookies):
+        # Save session
+        if send_cookies and self.session.sid not in self.web_server.sessions:
+            self.web_server.sessions[self.session.sid] = self.session
+            for cookie in str(self.cookies).splitlines():
+                regex = r"^([^:]+): (.+=.*)$"
+                matches = re.match(regex, cookie)
+                self.response_headers.append((matches.group(1), matches.group(2)))
 
     def process_request_body(self):
         pure_path = pure_path_pattern.match(self.path).group(1)
