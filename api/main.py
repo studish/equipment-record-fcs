@@ -1,7 +1,8 @@
+import urllib.parse
+
 import webframework
 from webframework import server
 from utils import logger as logger
-import os
 from dbinterface import DI
 
 db = DI.DI()
@@ -149,7 +150,7 @@ def get_items(handler: webframework.RequestHandler):
             search_query = ''
 
         if "categories" in handler.query:
-            categories = list(map(lambda x: f"'{x}'", handler.query["categories"][0].split(',')))
+            categories = handler.query["categories"][0].split(',')
         else:
             categories = []
 
@@ -179,3 +180,38 @@ def get_logs(handler: webframework.RequestHandler):
         })
     except Exception:
         handler.send_error(400)
+
+
+@server.get('/api/generateFiles')
+def get_inquiry_file_excel(handler: webframework.RequestHandler):
+    try:
+        binary_data, file_name = db.get_excel_file(handler.query["inqid"][0])
+
+        if binary_data is not None:
+            handler.response_headers.append(
+                ('Content-Disposition', f'attachment; filename="{urllib.parse.quote(file_name)}"'))
+            handler.response_headers.append(('Content-Type', 'application/octet-stream'))
+            handler.send(binary_data)
+    except KeyError:
+        handler.send_error(400)
+        logger.exception('key error')
+    except Exception as e:
+        logger.exception(e)
+        handler.send_error(500)
+
+
+@server.get('/api/inquiries')
+def get_inquiries(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.get_inquiries(status=handler.query["status"][0],
+                                                        offset=handler.query["offset"][0])
+        handler.send({
+            "success": True,
+            "errorMessage": "",
+            "data": data
+        })
+    except Exception as e:
+        logger.exception(e)
+        handler.send({
+            "success": False
+        })

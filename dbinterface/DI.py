@@ -117,13 +117,13 @@ class DI:
                      "OR inventoryitem.invid REGEXP ? " \
                      "OR inventoryitem.serial_num REGEXP ?) "
             if categories:
-                query += "AND (inventoryitem.category IN (" + ",".join(categories) + ")) "
+                query += "AND (inventoryitem.category IN (" + ", ".join(["?"] * len(categories)) + ")) "
                 cur.execute(query, (search, search, search, search, *categories))
             else:
                 cur.execute(query, (search, search, search, search))
             query += "LIMIT 20 OFFSET ?"
             count = cur.rowcount
-            for id, invid, category, display_name, serial_num, price, available in cur:
+            for id, invid, category, display_name, serial_num, price, available, desc in cur:
                 invitem_list.append({
                     "id": id,
                     "invid": invid,
@@ -131,7 +131,8 @@ class DI:
                     "displayName": display_name,
                     "serial_num": serial_num,
                     "price": price,
-                    "available": price
+                    "available": price,
+                    "description": desc
                 })
 
             conn.close()
@@ -162,3 +163,53 @@ class DI:
             return True, "", data
         except Exception as e:
             raise e
+
+    @staticmethod
+    def get_excel_file(inqid):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute(
+                "SELECT inquirername "
+                "FROM equipment_record_fcs.inquiry "
+                "WHERE inquiry.id=?",
+                (int(inqid),))
+
+            with open('files/накладная.xlsx', 'rb') as f:
+                binary_data = f.read()
+                for name in cur:
+                    file_name = f'требование_накладная_{name[0]}.xlsx'
+
+            conn.close()
+            return binary_data, file_name
+
+        except Exception as e:
+            raise e
+
+    @staticmethod
+    def get_inquiries(status, offset):
+        try:
+            inquiries = []
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute(
+                "SELECT inquiry.id, inquiry.inquirername, inquiry.inquireremail, inquiry.comment, "
+                "inquiry.status, inquiry.inventory_item "
+                "FROM equipment_record_fcs.inquiry "
+                "WHERE inquiry.status=? "
+                "LIMIT 20 "
+                "OFFSET ?", (status, int(offset)))
+
+            for id, inquirername, inquireremail, comment, status, inventory_item in cur:
+                inquiries.append({
+                    'id': id,
+                    "inquirerName": inquirername,
+                    "inquirerEmail": inquireremail,
+                    "comment": comment,
+                    "status": status,
+                    "itemId": inventory_item
+                })
+
+            conn.close()
+            return inquiries
+
+        except Exception as e:
+            raise
