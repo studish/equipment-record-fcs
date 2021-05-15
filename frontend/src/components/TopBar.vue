@@ -1,28 +1,34 @@
 <template>
   <div class="topBar">
-    <h1>Заголовок</h1>
-    <input
-      type="search"
-      v-if="$store.state.user.authorized"
-      v-model="searchTerm"
-      placeholder="Поиск..."
-    />
-    <button
-      @click="$store.dispatch('user/logout')"
-      v-if="$store.state.user.authorized"
-    >
-      Выход
-    </button>
+    <a href="#" @click="$store.dispatch('switchToPage', 'main')">
+      <h1>Учёт техники ФКН</h1>
+    </a>
+    <input type="search" v-model="searchTerm" placeholder="Поиск..." />
+    <div class="buttonsContainer">
+      <button v-if="$store.state.user.adminRole">Заявки</button>
+      <button
+        @click="$store.dispatch('user/logout')"
+        v-if="$store.state.user.authorized"
+      >
+        Выход
+      </button>
+      <button v-else @click="$store.dispatch('switchToPage', 'login')">
+        Вход
+      </button>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import store from "@/store";
 import { Options, Vue } from "vue-class-component";
 
 @Options({
-  mounted() {
-    console.log(store);
+  name: "TopBar",
+  emits: ["searchTermChanged"],
+  watch: {
+    searchTerm() {
+      this.$emit("searchTermChanged", this.searchTerm);
+    },
   },
 })
 export default class HelloWorld extends Vue {
@@ -31,11 +37,21 @@ export default class HelloWorld extends Vue {
 </script>
 
 <style scoped lang="scss">
+.buttonsContainer {
+  display: flex;
+  flex-direction: row;
+  justify-items: flex-end;
+  align-items: stretch;
+}
+
 .topBar {
-  h1 {
-    color: white;
-    margin: 0;
-    align-self: center;
+  a {
+    h1 {
+      color: white;
+      margin: 0;
+      align-self: center;
+    }
+    text-decoration: none;
   }
 
   height: 2.5rem;
@@ -55,6 +71,7 @@ export default class HelloWorld extends Vue {
     padding: 1em 1em;
     background-color: lightgrey;
     transition: all 0.3s ease;
+    border-radius: 100px;
 
     &:focus {
       background-color: white;

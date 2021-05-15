@@ -26,8 +26,11 @@
 
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
+import { RequestResponse } from "@/typings/interfaces";
 
-@Options({})
+@Options({
+  name: "LoginPage",
+})
 export default class LoginPage extends Vue {
   login = "";
   password = "";
@@ -41,14 +44,19 @@ export default class LoginPage extends Vue {
       return;
     }
 
-    await this.$store.dispatch("user/authorize", {
-      username: this.login,
-      password: this.password,
-    });
-    if (!this.$store.state.user.authorized) {
+    const result: RequestResponse<any> = await this.$store.dispatch(
+      "user/authorize",
+      {
+        username: this.login,
+        password: this.password,
+      }
+    );
+    if (!result.success) {
       this.error = true;
-      this.errorMessage = "Введён неверный логин или пароль";
+      this.errorMessage = result.errorMessage;
     }
+
+    await this.$store.dispatch("switchToPage", "main");
   }
 }
 </script>

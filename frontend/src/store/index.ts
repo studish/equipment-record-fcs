@@ -1,10 +1,22 @@
 import { createStore } from "vuex";
-import { IUserState } from "../typings/interfaces";
+import { IUserState, RequestResponse } from "@/typings/interfaces";
+
+type Page = "main" | "login";
 
 export default createStore({
-  state: {},
-  mutations: {},
-  actions: {},
+  state: {
+    page: "main" as Page,
+  },
+  mutations: {
+    SET_PAGE(state, page: Page) {
+      state.page = page;
+    },
+  },
+  actions: {
+    switchToPage(store, payload: Page) {
+      store.commit("SET_PAGE", payload);
+    },
+  },
   modules: {
     user: {
       namespaced: true,
@@ -15,10 +27,6 @@ export default createStore({
       },
       mutations: {
         SET_USERSTATE(state, { authorized, username, adminRole }: IUserState) {
-          console.log(
-            "Setting userstate: " +
-              JSON.stringify({ authorized, username, adminRole })
-          );
           state.authorized = authorized;
           state.username = username;
           state.adminRole = adminRole;
@@ -29,13 +37,15 @@ export default createStore({
           const response = await fetch("/api/checkAuth", {
             credentials: "same-origin",
           });
-          const jsonResponse: IUserState = await response.json();
-          store.commit("SET_USERSTATE", jsonResponse);
+          const jsonResponse: RequestResponse<IUserState> =
+            await response.json();
+          if (jsonResponse.success)
+            store.commit("SET_USERSTATE", jsonResponse.data);
         },
         async authorize(
           store,
           payload: { username: string; password: string }
-        ) {
+        ): Promise<RequestResponse<IUserState>> {
           const response = await fetch("/api/login", {
             method: "POST",
             credentials: "same-origin",
@@ -44,8 +54,14 @@ export default createStore({
               "Content-Type": "application/json",
             },
           });
-          const jsonResponse: IUserState = await response.json();
-          store.commit("SET_USERSTATE", jsonResponse);
+          const jsonResponse: RequestResponse<IUserState> =
+            await response.json();
+
+          if (jsonResponse.success) {
+            store.commit("SET_USERSTATE", jsonResponse.data);
+          }
+
+          return jsonResponse;
         },
         async logout(store) {
           await fetch("/api/logout", {
