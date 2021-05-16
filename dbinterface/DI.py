@@ -135,7 +135,7 @@ class DI:
                     "description": desc
                 })
             cur.execute("SELECT FOUND_ROWS()")
-            (count, ) = cur.fetchone()
+            (count,) = cur.fetchone()
             conn.close()
             return True, "", count, invitem_list
         except Exception as e:
@@ -191,7 +191,7 @@ class DI:
             inquiries = []
             conn, cur = dbconnect.connection('erfcs_admin')
             cur.execute(
-                "SELECT inquiry.id, inquiry.inquirername, inquiry.inquireremail, inquiry.comment, "
+                "SELECT inquiry.id, inquiry.inquirername, inquiry.inquirername, inquiry.comment, "
                 "inquiry.status, inquiry.inventory_item "
                 "FROM equipment_record_fcs.inquiry "
                 "WHERE inquiry.status=? "
@@ -213,3 +213,189 @@ class DI:
 
         except Exception as e:
             raise
+
+    @staticmethod
+    def create_inquiry(inquiry_data):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute(
+                "INSERT INTO `equipment_record_fcs`.`inquiry` "
+                "(inquirername, inquireremail, comment, status, inventory_item) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (inquiry_data["inquirerName"], inquiry_data["inquirerEmail"], inquiry_data["comment"],
+                 inquiry_data["status"], int(inquiry_data["itemId"])))
+            conn.commit()
+            cur.execute("SELECT * FROM `equipment_record_fcs`.`inquiry` "
+                        "WHERE `inquirername`=? AND `inquireremail`=? AND "
+                        "`comment`=? AND `status`=? AND `inventory_item`=?",
+                        (inquiry_data["inquirerName"], inquiry_data["inquirerEmail"], inquiry_data["comment"],
+                         inquiry_data["status"], int(inquiry_data["itemId"])))
+            data = {}
+            for id, inquirername, inquireremail, comment, status, invid in cur:
+                data = {
+                    "id": id,
+                    "inquirerName": inquirername,
+                    "inquirerEmail": inquireremail,
+                    "comment": comment,
+                    "status": status,
+                    "itemId": invid
+                }
+
+            conn.close()
+
+            return True, "", data
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def create_item(item_data):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute(
+                "INSERT INTO `equipment_record_fcs`.`inventoryitem` "
+                "(invid, category, display_name, serial_num, price, available, description) "
+                "VALUES (?, ?, ?, ?, ?, ?,?)",
+                (item_data["invid"], item_data["category"], item_data["displayName"],
+                 item_data["serial_num"], float(item_data["price"]), item_data["available"], item_data["description"]))
+            conn.commit()
+            cur.execute("SELECT * FROM `equipment_record_fcs`.`inventoryitem` "
+                        "WHERE `invid`=? AND `category`=? AND "
+                        "`display_name`=? AND `description`=? AND `serial_num`=? AND `price`=? AND `available`=?",
+                        (item_data["invid"], item_data["category"], item_data["displayName"],
+                         item_data["description"], item_data["serial_num"], float(item_data["price"]),
+                         item_data["available"]))
+            data = {}
+            for id, invid, category, display_name, serial_num, price, available, description in cur:
+                data = {
+                    "id": id,
+                    "invid": invid,
+                    "category": category,
+                    "displayName": display_name,
+                    "description": description,
+                    "serial_num": serial_num,
+                    "price": price,
+                    "available": available
+                }
+
+            conn.close()
+            return True, "", data
+        except Exception as e:
+            logger.exception(e)
+            return False, str(e), None
+
+    @staticmethod
+    def update_item(item_data):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute(
+                "UPDATE `equipment_record_fcs`.`inventoryitem` "
+                "SET invid=?, category=?, display_name=?, serial_num=?, price=?, available=?, description=? "
+                "WHERE `id`=?",
+                (item_data["invid"], item_data["category"], item_data["displayName"], item_data["serial_num"],
+                 float(item_data["price"]), item_data["available"], item_data["description"], item_data["id"]))
+
+            conn.commit()
+            if cur.rowcount == 0:
+                return False, "couldn't find the specifed item", {}
+            conn.close()
+            data = {
+                "id": item_data["id"],
+                "invid": item_data["invid"],
+                "category": item_data["category"],
+                "displayName": item_data["displayName"],
+                "description": item_data["description"],
+                "serial_num": item_data["serial_num"],
+                "price": item_data["price"],
+                "available": item_data["available"]
+            }
+            return True, "", data
+        except Exception as e:
+            logger.exception(e)
+            return False, str(e), None
+
+    @staticmethod
+    def update_inquiry(updated_data):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute(
+                "UPDATE `equipment_record_fcs`.`inquiry` "
+                "SET status=? "
+                "WHERE inquiry.id=?",
+                (updated_data["status"], int(updated_data["itemId"])))
+            conn.commit()
+            cur.execute("SELECT * "
+                        "FROM `equipment_record_fcs`.`inquiry` "
+                        "WHERE `id`=?",
+                        (int(updated_data["itemId"]),))
+            data = {}
+            for id, inquirername, inquireremail, comment, status, invid in cur:
+                data = {
+                    "id": id,
+                    "inquirerName": inquirername,
+                    "inquirerEmail": inquireremail,
+                    "comment": comment,
+                    "status": status,
+                    "itemId": invid
+                }
+
+            conn.close()
+
+            return True, "", data
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def create_log(post_data, post_files):
+        try:
+            conn, cur = dbconnect.connection('erfcs_admin')
+            cur.execute("INSERT INTO `equipment_record_fcs`.`log`"
+                        "(item_id, timestamp, description) "
+                        "VALUES (?,?,?)", (int(post_data["itemId"][0]), post_data["timestamp"][0], post_data["description"][0]))
+            conn.commit()
+            cur.execute('SELECT id from `equipment_record_fcs`.`log` WHERE item_id=? AND timestamp=? AND description=?',
+                        (int(post_data["itemId"][0]), post_data["timestamp"][0], post_data["description"][0]))
+            logid = -1
+            for (id,)  in cur:
+                logid = id
+            if logid < -1:
+                return False, "failed to add", {}
+            cur.execute("INSERT INTO `equipment_record_fcs`.`file`"
+                        "(`blob`, filename, log) "
+                        "VALUES (?, ?, ?), (?, ?, ?)",
+                        (post_files["acknowledgment"][0][0], post_files["acknowledgment"][0][1], logid,
+                         post_files["note"][0][0], post_files["note"][0][1], logid))
+            conn.commit()
+
+            cur.execute("SELECT id FROM `equipment_record_fcs`.`file`"
+                        "WHERE filename=?", (post_files["acknowledgment"][0][1],))
+            fileid1, fileid2 = -1, -1
+            for (id, ) in cur:
+                fileid1 = id
+            cur.execute("SELECT id FROM `equipment_record_fcs`.`file`"
+                        "WHERE filename=?", (post_files["note"][0][1],))
+            for (id, ) in cur:
+                fileid1 = id
+            if fileid1 < -1 or fileid2 < -1:
+                return False, "failed to add", {}
+
+            data = {
+                "id": logid,
+                "itemId": int(post_data["itemId"][0]),
+                "timestamp": post_data["timestamp"][0],
+                "description": post_data["description"][0],
+                "acknowledgment": {
+                    "id": fileid1,
+                    "fileName": post_files["acknowledgment"][0][1]
+                },
+                "note": {
+                    "id": fileid2,
+                    "fileName": post_files["note"][0][1]
+                }
+            }
+
+            conn.close()
+
+            return True, "", data
+        except Exception as e:
+            logger.exception(e)
+            return False, str(e), None
