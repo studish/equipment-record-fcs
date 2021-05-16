@@ -14,13 +14,13 @@ def version(handler: webframework.RequestHandler):
     handler.send("1.0")
 
 
-# @server.post('/postrequest')
-# def postrequest(handler: webframework.RequestHandler):
-#     if not os.path.isdir('./files'):
-#         os.mkdir('./files')
-#     logger.debug(type(handler.post_files["file"][0][1]))
-#     logger.debug(handler.post_files["file"][0][1])
-#     handler.send({"success": True})
+@server.post('/postrequest')
+def postrequest(handler: webframework.RequestHandler):
+    if not os.path.isdir('./files'):
+        os.mkdir('./files')
+    logger.debug(type(handler.post_files["excel"][0][1]))
+    logger.debug(handler.post_files["excel"][0][1])
+    handler.send({"success": True})
 # for key in handler.post_files:
 #     for file, filename in handler.post_files[key]:
 #         logger.debug("Saving %s...", filename)

@@ -350,46 +350,75 @@ class DI:
             conn, cur = dbconnect.connection('erfcs_admin')
             cur.execute("INSERT INTO `equipment_record_fcs`.`log`"
                         "(item_id, timestamp, description) "
-                        "VALUES (?,?,?)", (int(post_data["itemId"][0]), post_data["timestamp"][0], post_data["description"][0]))
+                        "VALUES (?,?,?)",
+                        (int(post_data["itemId"][0]), post_data["timestamp"][0], post_data["description"][0]))
             conn.commit()
             cur.execute('SELECT id from `equipment_record_fcs`.`log` WHERE item_id=? AND timestamp=? AND description=?',
                         (int(post_data["itemId"][0]), post_data["timestamp"][0], post_data["description"][0]))
             logid = -1
-            for (id,)  in cur:
+            for (id,) in cur:
                 logid = id
             if logid < -1:
                 return False, "failed to add", {}
+            filename1 = post_files['excel'][0][1]
+            filename2 = post_files['word'][0][1]
+            conn.commit()
+            entries_of_a_filename = -1
+            while entries_of_a_filename != 0:
+                cur.execute("SELECT COUNT(filename) "
+                            "FROM `equipment_record_fcs`.`file`"
+                            "WHERE filename=?", (filename1,))
+                (entries_of_a_filename,) = cur.fetchone()
+                logger.debug(entries_of_a_filename)
+                if entries_of_a_filename != 0:
+                    filename1 += f'_{post_data["timestamp"][0]}'
+            insert_file_query = "INSERT INTO `equipment_record_fcs`.`file` " \
+                                "(`blob`, filename, log) " \
+                                "VALUES (?, ?, ?)"
+
+            cur.execute(insert_file_query, (post_files["excel"][0][0], filename1, logid))
+            conn.commit()
+            entries_of_a_filename = -1
+            while entries_of_a_filename != 0:
+                cur.execute("SELECT COUNT(filename) "
+                            "FROM `equipment_record_fcs`.`file`"
+                            "WHERE filename=?", (filename2,))
+                (entries_of_a_filename,) = cur.fetchone()
+                if entries_of_a_filename != 0:
+                    filename2 += f'_{post_data["timestamp"][0]}'
+            cur.execute(insert_file_query, (post_files["word"][0][0], filename2, logid))
+            conn.commit()
+            fileid1, fileid2 = -1, -1
+            cur.execute("SELECT id FROM `equipment_record_fcs`.`file`"
+                        "WHERE filename=?", (filename1,))
+            for (id,) in cur:
+                fileid1 = id
+            cur.execute("SELECT id FROM `equipment_record_fcs`.`file`"
+                        "WHERE filename=?", (filename2,))
+            for (id,) in cur:
+                fileid2 = id
+
+            if fileid1 < -1 or fileid2 < -1:
+                return False, "failed to add", {}
+
             cur.execute("INSERT INTO `equipment_record_fcs`.`file`"
                         "(`blob`, filename, log) "
                         "VALUES (?, ?, ?), (?, ?, ?)",
-                        (post_files["acknowledgment"][0][0], post_files["acknowledgment"][0][1], logid,
-                         post_files["note"][0][0], post_files["note"][0][1], logid))
-            conn.commit()
-
-            cur.execute("SELECT id FROM `equipment_record_fcs`.`file`"
-                        "WHERE filename=?", (post_files["acknowledgment"][0][1],))
-            fileid1, fileid2 = -1, -1
-            for (id, ) in cur:
-                fileid1 = id
-            cur.execute("SELECT id FROM `equipment_record_fcs`.`file`"
-                        "WHERE filename=?", (post_files["note"][0][1],))
-            for (id, ) in cur:
-                fileid1 = id
-            if fileid1 < -1 or fileid2 < -1:
-                return False, "failed to add", {}
+                        (post_files["excel"][0][0], filename1, logid,
+                         post_files["word"][0][0], filename2, logid))
 
             data = {
                 "id": logid,
                 "itemId": int(post_data["itemId"][0]),
                 "timestamp": post_data["timestamp"][0],
                 "description": post_data["description"][0],
-                "acknowledgment": {
+                "excel_file": {
                     "id": fileid1,
-                    "fileName": post_files["acknowledgment"][0][1]
+                    "fileName": filename1
                 },
-                "note": {
+                "word_file": {
                     "id": fileid2,
-                    "fileName": post_files["note"][0][1]
+                    "fileName": filename2
                 }
             }
 
