@@ -4,6 +4,7 @@ import webframework
 from webframework import server
 from utils import logger as logger
 from dbinterface import DI
+import os
 
 db = DI.DI()
 
@@ -13,21 +14,25 @@ def version(handler: webframework.RequestHandler):
     handler.send("1.0")
 
 
-# @server.post('/postrequest')
-# def postrequest(handler: webframework.RequestHandler):
-#     if not os.path.isdir('./files'):
-#         os.mkdir('./files')
-#     for key in handler.post_files:
-#         for file, filename in handler.post_files[key]:
-#             logger.debug("Saving %s...", filename)
-#             with open('./files/' + filename, 'wb') as f:
-#                 f.write(file)
-#                 f.close()
-#                 # "(.*)(\.*)?" // в базу добавлять (первые [100 - длина (. + расширение)]) + . + расширение
-#     handler.send({
-#         "data": handler.post_data,
-#         "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
-#     })
+@server.post('/postrequest')
+def postrequest(handler: webframework.RequestHandler):
+    if not os.path.isdir('./files'):
+        os.mkdir('./files')
+    logger.debug(type(handler.post_files["excel"][0][1]))
+    logger.debug(handler.post_files["excel"][0][1])
+    handler.send({"success": True})
+# for key in handler.post_files:
+#     for file, filename in handler.post_files[key]:
+#         logger.debug("Saving %s...", filename)
+#         with open('./files/' + filename, 'wb') as f:
+#             f.write(file)
+#             f.close()
+#             # "(.*)(\.*)?" // в базу добавлять (первые [100 - длина (. + расширение)]) + . + расширение
+# handler.send({
+#     "data": handler.post_data,
+#     "files": [(key, [filename for _, filename in handler.post_files[key]]) for key in handler.post_files.keys()]
+# })
+
 
 @server.post('/api/login')
 def login(handler: webframework.RequestHandler):
@@ -203,8 +208,8 @@ def get_inquiry_file_excel(handler: webframework.RequestHandler):
 @server.get('/api/inquiries')
 def get_inquiries(handler: webframework.RequestHandler):
     try:
-        success, error_message, data = db.get_inquiries(status=handler.query["status"][0],
-                                                        offset=handler.query["offset"][0])
+        success, data = db.get_inquiries(status=handler.query["status"][0],
+                                         offset=handler.query["offset"][0])
         handler.send({
             "success": True,
             "errorMessage": "",
@@ -214,4 +219,94 @@ def get_inquiries(handler: webframework.RequestHandler):
         logger.exception(e)
         handler.send({
             "success": False
+        })
+
+
+@server.post('/api/inquiry')
+def create_inquiry(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.create_inquiry(inquiry_data=handler.post_data)
+
+        handler.send({
+            "success": success,
+            "handlerMessage": error_message,
+            "data": data
+        })
+    except Exception as e:
+        logger.exception(e)
+        handler.send({
+            "success": False,
+            "errorMessage": str(e)
+        })
+
+
+@server.post('/api/item')
+def create_item(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.create_item(item_data=handler.post_data)
+
+        handler.send({
+            "success": success,
+            "handlerMessage": error_message,
+            "data": data
+        })
+    except Exception as e:
+        logger.exception(e)
+        handler.send({
+            "success": False,
+            "errorMessage": str(e)
+        })
+
+
+@server.put('/api/item')
+def update_item(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.update_item(handler.post_data)
+
+        handler.send({
+            "success": success,
+            "handlerMessage": error_message,
+            "data": data
+        })
+    except Exception as e:
+        logger.exception(e)
+        handler.send({
+            "success": False,
+            "errorMessage": str(e)
+        })
+
+
+@server.patch('/api/inquiry')
+def update_inquiry(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.update_inquiry(handler.post_data)
+
+        handler.send({
+            "success": success,
+            "handlerMessage": error_message,
+            "data": data
+        })
+    except Exception as e:
+        logger.exception(e)
+        handler.send({
+            "success": False,
+            "errorMessage": str(e)
+        })
+
+
+@server.post('/api/log')
+def create_log(handler: webframework.RequestHandler):
+    try:
+        success, error_message, data = db.create_log(post_data=handler.post_data,
+                                                     post_files=handler.post_files)
+        handler.send({
+            "success": success,
+            "handlerMessage": error_message,
+            "data": data
+        })
+    except Exception as e:
+        logger.exception(e)
+        handler.send({
+            "success": False,
+            "errorMessage": str(e)
         })
