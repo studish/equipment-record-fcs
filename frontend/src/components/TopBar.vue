@@ -5,6 +5,7 @@
     </a>
     <input type="search" v-model="searchTerm" placeholder="Поиск..." />
     <div class="buttonsContainer">
+      <span class="username">{{ $store.state.user.username }}</span>
       <button v-if="$store.state.user.adminRole">Заявки</button>
       <button
         @click="$store.dispatch('user/logout')"
@@ -42,6 +43,12 @@ export default class HelloWorld extends Vue {
   flex-direction: row;
   justify-items: flex-end;
   align-items: stretch;
+}
+
+.username {
+  align-self: center;
+  color: white;
+  margin-right: 2em;
 }
 
 .topBar {

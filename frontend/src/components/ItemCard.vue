@@ -17,6 +17,7 @@
       v-if="showModal"
       :item="item"
       @close="showModal = false"
+      @itemChanged="handleItemChanged"
     ></ModalItemCard>
   </div>
 </template>
@@ -36,12 +37,17 @@ import ModalItemCard from "./ModalItemCard.vue";
   components: {
     ModalItemCard,
   },
+  emits: ["update:item"],
 })
 export default class ItemCard extends Vue {
   showModal = false;
 
   category(cat: string): string {
     return cat[0] + cat.toLowerCase().slice(1, cat.length);
+  }
+
+  handleItemChanged(event: IInventoryItem): void {
+    this.$emit("update:item", event);
   }
 }
 </script>

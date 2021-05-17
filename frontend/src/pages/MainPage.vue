@@ -27,7 +27,12 @@
         :offset="offset"
       />
 
-      <ItemCard v-for="item in items" :key="item.id" :item="item"></ItemCard>
+      <ItemCard
+        v-for="item in items"
+        :key="'item' + item.id"
+        :item="item"
+        @update:item="updateItem(item, $event)"
+      ></ItemCard>
 
       <Pagination
         :count="itemsCount"
@@ -43,7 +48,11 @@
 import { Options, Vue } from "vue-class-component";
 import ItemCard from "../components/ItemCard.vue";
 import Pagination from "../components/Pagination.vue";
-import { itemCategory, IInventoryItem } from "../typings/interfaces";
+import {
+  itemCategory,
+  IInventoryItem,
+  RequestResponse,
+} from "../typings/interfaces";
 
 @Options({
   name: "MainPage",
@@ -100,13 +109,27 @@ export default class MainPage extends Vue {
             categories: categories.join(","),
           })
       );
-      const json = await response.json();
+      const json: RequestResponse<{
+        count: number;
+        items: IInventoryItem[];
+      }> = await response.json();
       if (json.success) {
-        this.items = json.data.items;
-        this.itemsCount = json.data.count;
+        for (let i = 0; i < json.data.items.length; i++) {
+          json.data.items[i].available = !!json.data.items[i].available;
+        }
+        if (json.success) {
+          this.items = json.data.items;
+          this.itemsCount = json.data.count;
+        }
       }
     } catch (e) {
       console.log(e);
+    }
+  }
+
+  updateItem(item: IInventoryItem, event: IInventoryItem): void {
+    for (const key of Reflect.ownKeys(event)) {
+      Reflect.set(item, key, Reflect.get(event, key));
     }
   }
 

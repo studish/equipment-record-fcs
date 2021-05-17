@@ -5,21 +5,62 @@
         <button @click="close" title="Закрыть">X</button>
       </div>
       <div class="body">
-        <b class="displayName">{{ item.displayName }}</b>
+        <b v-if="!editing" class="displayName">{{
+          editableItem.displayName
+        }}</b>
+        <input v-else type="text" v-model="editableItem.displayName" />
         <p>
           Инв. номер:
-          <input disabled type="text" v-model="item.invid" />
+          <input
+            :disabled="!editing"
+            type="text"
+            v-model="editableItem.invid"
+          />
         </p>
         <p>
-          Категория: <i>{{ category(item.category) }}</i>
+          Категория:
+          <select :disabled="!editing" v-model="editableItem.category">
+            <option v-for="option in categories" :value="option" :key="option">
+              {{ option }}
+            </option>
+          </select>
         </p>
         <p>
           Серийный номер:
-          <input disabled type="text" v-model="item.serial_num" />
+          <input
+            :disabled="!editing"
+            type="text"
+            v-model="editableItem.serial_num"
+          />
         </p>
-        <p>Цена (руб): <input type="text" disabled v-model="item.price" /></p>
+        <p>
+          Цена (руб):
+          <input
+            type="text"
+            :disabled="!editing"
+            v-model="editableItem.price"
+          />
+        </p>
+        <p>
+          Доступно:
+          <input
+            type="checkbox"
+            v-model="editableItem.available"
+            :disabled="!editing"
+          />
+        </p>
         <b>Описание</b>
-        <div class="description" v-text="item.description"></div>
+        <textarea
+          class="description"
+          v-text="item.description"
+          :disabled="!editing"
+        ></textarea>
+        <div v-if="$store.state.user.adminRole">
+          <button @click="toggleEdit()">
+            {{ editing ? "Отмена" : "Редактировать" }}
+          </button>
+          <button v-if="editing" @click="save">Сохранить</button>
+        </div>
       </div>
     </div>
   </div>
@@ -27,7 +68,11 @@
 
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
-import { IInventoryItem } from "../typings/interfaces";
+import {
+  RequestResponse,
+  IInventoryItem,
+  itemCategory,
+} from "../typings/interfaces";
 
 @Options({
   name: "ModalItemCard",
@@ -36,16 +81,61 @@ import { IInventoryItem } from "../typings/interfaces";
       type: Object as () => IInventoryItem,
     },
   },
+  watch: {
+    item() {
+      this.editableItem = JSON.parse(JSON.stringify(this.item));
+    },
+  },
+  emits: ["itemChanged", "close"],
 })
 export default class ModalItemCard extends Vue {
+  categories = Object.keys(itemCategory).filter(
+    (k) => typeof itemCategory[k as any] === "number"
+  );
+
   category(cat: string): string {
+    console.log(this);
     return cat[0] + cat.toLowerCase().slice(1, cat.length);
   }
 
   item!: IInventoryItem;
+  editing = false;
+  editableItem!: IInventoryItem;
+  itemBackup!: IInventoryItem;
+
+  beforeMount(): void {
+    this.editableItem = JSON.parse(JSON.stringify(this.item));
+  }
 
   close(): void {
     this.$emit("close");
+  }
+
+  toggleEdit(): void {
+    if (!this.editing) {
+      this.itemBackup = JSON.parse(JSON.stringify(this.editableItem));
+      this.editing = true;
+    } else {
+      this.editableItem = JSON.parse(JSON.stringify(this.itemBackup));
+      this.editing = false;
+    }
+  }
+
+  async save(): Promise<void> {
+    const response = await fetch("/api/item", {
+      method: "PUT",
+      body: JSON.stringify(this.editableItem),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const json: RequestResponse<IInventoryItem> = await response.json();
+    if (json.success) {
+      this.$emit("itemChanged", json.data);
+      this.toggleEdit();
+    } else {
+      alert(json.errorMessage);
+    }
   }
 }
 </script>
