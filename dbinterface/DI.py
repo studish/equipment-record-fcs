@@ -171,7 +171,7 @@ class DI:
                 'SELECT log.id, log.description, log.timestamp, GROUP_CONCAT(\'{"fileName": "\', '
                 "file.filename, '\", \"id\": ', file.id, '}' SEPARATOR ', ') as data "
                 "FROM `equipment_record_fcs`.`log` "
-                "INNER JOIN `equipment_record_fcs`.`file` ON  log.item_id=? AND log.id = file.log",
+                "INNER JOIN `equipment_record_fcs`.`file` ON  log.item_id=? AND log.id = file.log GROUP BY log.id",
                 (int(itemid),),
             )
             for logid, description, timestamp, file_json_list in cur:
@@ -440,95 +440,40 @@ class DI:
                 ),
             )
             conn.commit()
-            cur.execute(
-                "SELECT id from `equipment_record_fcs`.`log` WHERE item_id=? AND timestamp=? AND description=?",
-                (
-                    int(post_data["itemId"][0]),
-                    post_data["timestamp"][0],
-                    post_data["description"][0],
-                ),
-            )
+            cur.execute("SELECT LAST_INSERT_ID()")
             logid = -1
-            for (id,) in cur:
-                logid = id
+            for (log_id,) in cur:
+                logid = log_id
             if logid < -1:
                 return False, "failed to add", {}
-            filename1 = post_files["excel"][0][1]
-            filename2 = post_files["word"][0][1]
             conn.commit()
-            entries_of_a_filename = -1
-            while entries_of_a_filename != 0:
-                cur.execute(
-                    "SELECT COUNT(filename) "
-                    "FROM `equipment_record_fcs`.`file`"
-                    "WHERE filename=?",
-                    (filename1,),
-                )
-                (entries_of_a_filename,) = cur.fetchone()
-                logger.debug(entries_of_a_filename)
-                if entries_of_a_filename != 0:
-                    filename1 += f'_{post_data["timestamp"][0]}'
-            insert_file_query = (
-                "INSERT INTO `equipment_record_fcs`.`file` "
-                "(`blob`, filename, log) "
-                "VALUES (?, ?, ?)"
+
+            # Add files
+            files = []
+            data_to_insert = []
+
+            for key in post_files:
+                for filedata, filename in post_files[key]:
+                    data_to_insert.append((filedata, filename, logid))
+
+            cur.executemany(
+                "INSERT INTO `file` (`blob`, `filename`, `log`) VALUES (?, ?, ?)",
+                data_to_insert,
             )
 
-            cur.execute(
-                insert_file_query, (post_files["excel"][0][0], filename1, logid)
-            )
             conn.commit()
-            entries_of_a_filename = -1
-            while entries_of_a_filename != 0:
-                cur.execute(
-                    "SELECT COUNT(filename) "
-                    "FROM `equipment_record_fcs`.`file`"
-                    "WHERE filename=?",
-                    (filename2,),
-                )
-                (entries_of_a_filename,) = cur.fetchone()
-                if entries_of_a_filename != 0:
-                    filename2 += f'_{post_data["timestamp"][0]}'
-            cur.execute(insert_file_query, (post_files["word"][0][0], filename2, logid))
-            conn.commit()
-            fileid1, fileid2 = -1, -1
-            cur.execute(
-                "SELECT id FROM `equipment_record_fcs`.`file`" "WHERE filename=?",
-                (filename1,),
-            )
-            for (id,) in cur:
-                fileid1 = id
-            cur.execute(
-                "SELECT id FROM `equipment_record_fcs`.`file`" "WHERE filename=?",
-                (filename2,),
-            )
-            for (id,) in cur:
-                fileid2 = id
 
-            if fileid1 < -1 or fileid2 < -1:
-                return False, "failed to add", {}
+            cur.execute(f"SELECT `id`, `filename` from `file` WHERE `log` = {logid}")
 
-            cur.execute(
-                "INSERT INTO `equipment_record_fcs`.`file`"
-                "(`blob`, filename, log) "
-                "VALUES (?, ?, ?), (?, ?, ?)",
-                (
-                    post_files["excel"][0][0],
-                    filename1,
-                    logid,
-                    post_files["word"][0][0],
-                    filename2,
-                    logid,
-                ),
-            )
+            for row in cur:
+                files.append({"id": row[0], "fileName": row[1]})
 
             data = {
                 "id": logid,
                 "itemId": int(post_data["itemId"][0]),
                 "timestamp": post_data["timestamp"][0],
                 "description": post_data["description"][0],
-                "excel_file": {"id": fileid1, "fileName": filename1},
-                "word_file": {"id": fileid2, "fileName": filename2},
+                "files": files,
             }
 
             conn.close()

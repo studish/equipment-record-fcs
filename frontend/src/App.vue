@@ -39,6 +39,10 @@ export default class App extends Vue {
 </script>
 
 <style lang="scss">
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   margin: 0;
@@ -66,6 +70,12 @@ body {
 
 .page {
   flex-grow: 1;
+
+  padding: 2em;
+
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  margin-top: 3rem;
 }
 
 input {

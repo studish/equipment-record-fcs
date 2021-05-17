@@ -10,14 +10,18 @@
           :id="'chk' + category"
           v-model="filter.category[category]"
         />
-        <label :for="'chk' + category">
-          {{ capitalize(category.toLowerCase()) }}
-        </label>
+        <label :for="'chk' + category">{{
+          capitalize(category.toLowerCase())
+        }}</label>
       </div>
 
       <button class="loadResultsButton" @click="loadResults">
         Показать результаты
       </button>
+
+      <div class="spacer"></div>
+
+      <button @click="showNewItemModal">Добавить предмет инвентаря</button>
     </div>
     <div class="content">
       <Pagination
@@ -41,6 +45,12 @@
         :offset="offset"
       />
     </div>
+
+    <NewItemModal
+      @close="newItemModal = false"
+      @success="loadResults"
+      v-if="newItemModal"
+    ></NewItemModal>
   </div>
 </template>
 
@@ -48,6 +58,7 @@
 import { Options, Vue } from "vue-class-component";
 import ItemCard from "../components/ItemCard.vue";
 import Pagination from "../components/Pagination.vue";
+import NewItemModal from "../components/NewItemModal.vue";
 import {
   itemCategory,
   IInventoryItem,
@@ -71,7 +82,7 @@ import {
       this.timer = setTimeout(this.loadResults, 1000);
     },
   },
-  components: { ItemCard, Pagination },
+  components: { ItemCard, Pagination, NewItemModal },
   props: {
     searchTerm: String,
   },
@@ -136,6 +147,11 @@ export default class MainPage extends Vue {
   async mounted(): Promise<void> {
     await this.loadResults();
   }
+
+  newItemModal = false;
+  showNewItemModal(): void {
+    this.newItemModal = true;
+  }
 }
 </script>
 
@@ -145,11 +161,21 @@ export default class MainPage extends Vue {
   flex-direction: row;
   align-items: stretch;
   justify-content: flex-start;
+  padding: 0;
+  overflow-y: inherit;
 
   .sideBar {
     min-width: 10em;
     border-right: 1px solid grey;
     padding: 1em;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    .spacer {
+      flex-grow: 1;
+    }
 
     h3 {
       margin: 0;
@@ -169,6 +195,9 @@ export default class MainPage extends Vue {
     align-items: stretch;
 
     padding: 2em;
+
+    overflow-y: scroll;
+    max-height: 100%;
   }
 }
 </style>

@@ -3,14 +3,27 @@
     <a href="#" @click="$store.dispatch('switchToPage', 'main')">
       <h1>Учёт техники ФКН</h1>
     </a>
-    <input type="search" v-model="searchTerm" placeholder="Поиск..." />
+    <input
+      type="search"
+      v-model="searchTerm"
+      v-if="$store.state.page === 'main'"
+      placeholder="Поиск..."
+    />
     <div class="buttonsContainer">
-      <span class="username">{{ $store.state.user.username }}</span>
+      <span v-if="$store.state.user.authorized" class="username">{{
+        $store.state.user.username
+      }}</span>
       <button
-        v-if="$store.state.user.adminRole"
+        v-if="$store.state.user.adminRole && $store.state.page !== 'inquiries'"
         @click="$store.dispatch('switchToPage', 'inquiries')"
       >
         Заявки
+      </button>
+      <button
+        v-if="$store.state.page !== 'main'"
+        @click="$store.dispatch('switchToPage', 'main')"
+      >
+        Инвентарь
       </button>
       <button
         @click="$store.dispatch('user/logout')"
@@ -18,7 +31,10 @@
       >
         Выход
       </button>
-      <button v-else @click="$store.dispatch('switchToPage', 'login')">
+      <button
+        v-else-if="$store.state.page !== 'login'"
+        @click="$store.dispatch('switchToPage', 'login')"
+      >
         Вход
       </button>
     </div>
@@ -57,6 +73,10 @@ export default class HelloWorld extends Vue {
 }
 
 .topBar {
+  position: fixed;
+  width: 100vw;
+  box-sizing: border-box;
+
   a {
     h1 {
       color: white;
@@ -66,7 +86,7 @@ export default class HelloWorld extends Vue {
     text-decoration: none;
   }
 
-  height: 2.5rem;
+  height: 3rem;
   background-color: #0b2b68;
   padding: 5px 10px;
 

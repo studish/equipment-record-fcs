@@ -26,7 +26,7 @@ export enum inquiryStatus {
 }
 
 export interface IInventoryItem {
-  id: number;
+  id?: number;
   invid: string;
   category: itemCategory;
   displayName: string;

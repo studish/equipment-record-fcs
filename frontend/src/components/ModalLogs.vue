@@ -3,7 +3,10 @@
     <div class="modal">
       <div class="header">
         <b class="displayName">{{ itemname }}</b>
-        <button @click="close" title="Закрыть">X</button>
+        <div>
+          <button @click="setShowCreateLog(true)">Добавить лог</button>
+          <button @click="close" title="Закрыть">X</button>
+        </div>
       </div>
       <div class="body">
         <div v-for="log in logs" :key="'log' + log.id">
@@ -19,6 +22,21 @@
             >
           </div>
         </div>
+        <div v-show="showCreateLog" class="createLog">
+          <label for="newLogText">
+            <b>Новый лог:</b>
+          </label>
+          <form
+            ref="newLogForm"
+            id="newLogForm"
+            method="post"
+            enctype="multipart/form-data"
+          >
+            <input type="text" name="description" v-model="newLogText" />
+            <input type="file" name="files" multiple />
+          </form>
+          <button @click="createLog">Создать</button>
+        </div>
       </div>
     </div>
   </div>
@@ -26,13 +44,7 @@
 
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
-import {
-  RequestResponse,
-  IInventoryItem,
-  itemCategory,
-  IFile,
-  ILog,
-} from "../typings/interfaces";
+import { RequestResponse, ILog } from "../typings/interfaces";
 
 @Options({
   name: "ModalLogs",
@@ -48,9 +60,12 @@ export default class ModalLogs extends Vue {
   invid!: string;
   itemname!: string;
 
+  showCreateLog = false;
+  newLogText = "";
+
   logs: ILog[] = [];
 
-  async mounted(): Promise<void> {
+  async loadData(): Promise<void> {
     const response = await fetch(
       "/api/logs?" +
         new URLSearchParams({
@@ -62,6 +77,43 @@ export default class ModalLogs extends Vue {
       this.logs = json.data;
     } else {
       alert(json.errorMessage);
+    }
+  }
+
+  async mounted(): Promise<void> {
+    await this.loadData();
+  }
+
+  setShowCreateLog(value: boolean): void {
+    this.showCreateLog = value;
+  }
+
+  just(str: { toString: () => string }, length: number, char: string): string {
+    let result = str.toString();
+    return char.repeat(length - result.length) + result;
+  }
+
+  async createLog(): Promise<void> {
+    console.log(this.$refs);
+    const data = new FormData(this.$refs.newLogForm as HTMLFormElement);
+    data.append("itemId", this.itemid.toString());
+    const date = new Date();
+    const j = (x: { toString: () => string }) => this.just(x, 2, "0");
+    let timestamp =
+      `${date.getFullYear()}-${j(date.getMonth())}-${j(date.getDay())}` +
+      ` ${j(date.getHours())}-${j(date.getMinutes())}-${j(date.getSeconds())}`;
+    data.append("timestamp", timestamp);
+
+    const response = await fetch("/api/log", {
+      method: "POST",
+      headers: {
+        // "Content-Type": undefined,
+      },
+      body: data,
+    });
+    const json: RequestResponse<ILog> = await response.json();
+    if (json.success) {
+      this.loadData();
     }
   }
 

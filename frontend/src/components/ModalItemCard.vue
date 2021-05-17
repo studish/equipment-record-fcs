@@ -70,7 +70,7 @@
         <b>Описание</b>
         <textarea
           class="description"
-          v-text="item.description"
+          v-text="editableItem.description"
           :disabled="!editing"
         ></textarea>
         <div v-if="$store.state.user.adminRole">

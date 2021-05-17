@@ -33,7 +33,7 @@
 
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
-import { IInquiry, IInventoryItem, inquiryStatus } from "../typings/interfaces";
+import { IInquiry, inquiryStatus } from "../typings/interfaces";
 
 @Options({
   name: "ItemCard",
