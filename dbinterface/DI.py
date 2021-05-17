@@ -217,7 +217,7 @@ class DI:
             inquiries = []
             conn, cur = dbconnect.connection("erfcs_admin")
             cur.execute(
-                "SELECT inquiry.id, inquiry.inquirername, inquiry.inquirername, inquiry.comment, "
+                "SELECT inquiry.id, inquiry.inquirername, inquiry.inquireremail, inquiry.comment, "
                 "inquiry.status, inquiry.inventory_item "
                 "FROM equipment_record_fcs.inquiry "
                 "WHERE inquiry.status=? "

@@ -37,7 +37,7 @@ export interface IInventoryItem {
 }
 
 export interface IInquiry {
-  id: number;
+  id?: number;
   inquirerName: string;
   inquirerEmail: string;
   comment: string;

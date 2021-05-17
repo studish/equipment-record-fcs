@@ -219,13 +219,14 @@ def get_inquiries(handler: webframework.RequestHandler):
         handler.send({"success": True, "errorMessage": "", "data": data})
     except Exception as e:
         logger.exception(e)
-        handler.send({"success": False})
+        handler.send({"success": False, "errorMessage": str(e)})
 
 
 @server.post("/api/inquiry")
 def create_inquiry(handler: webframework.RequestHandler):
     try:
         success, error_message, data = db.create_inquiry(inquiry_data=handler.post_data)
+        # logger.debug(success, error_message, data)
 
         handler.send({"success": success, "errorMessage": error_message, "data": data})
     except Exception as e:

@@ -2,6 +2,24 @@
   <div class="modal-backdrop">
     <div class="modal">
       <div class="header">
+        <ModalLogs
+          v-if="showLogs"
+          @close="showLogs = false"
+          :itemid="item.id"
+          :invid="item.invid"
+          :itemname="item.displayName"
+        ></ModalLogs>
+        <ModalInquiry
+          v-if="showInquiry"
+          @close="showInquiry = false"
+          :itemid="item.id"
+          :invid="item.invid"
+          :itemname="item.displayName"
+        ></ModalInquiry>
+        <button @click="showLogs = true" v-if="$store.state.user.adminRole">
+          Логи
+        </button>
+        <button @click="showInquiry = true">Подать заявку</button>
         <button @click="close" title="Закрыть">X</button>
       </div>
       <div class="body">
@@ -73,6 +91,8 @@ import {
   IInventoryItem,
   itemCategory,
 } from "../typings/interfaces";
+import ModalLogs from "./ModalLogs.vue";
+import ModalInquiry from "./ModalInquiry.vue";
 
 @Options({
   name: "ModalItemCard",
@@ -80,6 +100,10 @@ import {
     item: {
       type: Object as () => IInventoryItem,
     },
+  },
+  components: {
+    ModalLogs,
+    ModalInquiry,
   },
   watch: {
     item() {
@@ -101,7 +125,8 @@ export default class ModalItemCard extends Vue {
   item!: IInventoryItem;
   editing = false;
   editableItem!: IInventoryItem;
-  itemBackup!: IInventoryItem;
+  showLogs = false;
+  showInquiry = false;
 
   beforeMount(): void {
     this.editableItem = JSON.parse(JSON.stringify(this.item));
@@ -113,10 +138,9 @@ export default class ModalItemCard extends Vue {
 
   toggleEdit(): void {
     if (!this.editing) {
-      this.itemBackup = JSON.parse(JSON.stringify(this.editableItem));
       this.editing = true;
     } else {
-      this.editableItem = JSON.parse(JSON.stringify(this.itemBackup));
+      this.editableItem = JSON.parse(JSON.stringify(this.item));
       this.editing = false;
     }
   }

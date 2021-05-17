@@ -6,7 +6,12 @@
     <input type="search" v-model="searchTerm" placeholder="Поиск..." />
     <div class="buttonsContainer">
       <span class="username">{{ $store.state.user.username }}</span>
-      <button v-if="$store.state.user.adminRole">Заявки</button>
+      <button
+        v-if="$store.state.user.adminRole"
+        @click="$store.dispatch('switchToPage', 'inquiries')"
+      >
+        Заявки
+      </button>
       <button
         @click="$store.dispatch('user/logout')"
         v-if="$store.state.user.authorized"

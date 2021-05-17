@@ -2,6 +2,10 @@
   <TopBar @search-term-changed="updateSearchTerm"></TopBar>
   <MainPage v-if="$store.state.page === 'main'" :searchTerm="searchTerm" />
   <LoginPage v-else-if="$store.state.page === 'login'" />
+  <InquiriesPage
+    v-else-if="$store.state.page === 'inquiries' && $store.state.user.adminRole"
+  />
+  <NotFoundPage v-else />
 </template>
 
 <script lang="ts">
@@ -9,12 +13,16 @@ import { Options, Vue } from "vue-class-component";
 import LoginPage from "./pages/LoginPage.vue";
 import TopBar from "./components/TopBar.vue";
 import MainPage from "./pages/MainPage.vue";
+import InquiriesPage from "./pages/InquiriesPage.vue";
+import NotFoundPage from "./pages/NotFoundPage.vue";
 
 @Options({
   components: {
     LoginPage,
     MainPage,
     TopBar,
+    InquiriesPage,
+    NotFoundPage,
   },
 })
 export default class App extends Vue {

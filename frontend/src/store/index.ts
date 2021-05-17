@@ -1,7 +1,7 @@
 import { createStore } from "vuex";
 import { IUserState, RequestResponse } from "@/typings/interfaces";
 
-type Page = "main" | "login";
+type Page = "main" | "login" | "inquiries" | string;
 
 export default createStore({
   state: {
