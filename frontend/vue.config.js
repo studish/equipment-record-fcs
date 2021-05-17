@@ -2,6 +2,12 @@
 const path = require("path");
 
 module.exports = {
+  chainWebpack: (config) => {
+    config.plugin("html").tap((args) => {
+      args[0].title = "Учёт техники ФКН";
+      return args;
+    });
+  },
   configureWebpack: {
     devServer: {
       headers: { "Access-Control-Allow-Origin": "*" },
