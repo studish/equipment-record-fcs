@@ -111,7 +111,7 @@ class DI:
             raise e
 
     @staticmethod
-    def get_item_list(search: str = "", offset: str = 0, categories: List[str] = []):
+    def get_item_list(search: str = "", offset: str = 0, categories: List[str] = [], authorized: bool = False):
         try:
             invitem_list = []
             conn, cur = dbconnect.connection("erfcs_admin")
@@ -122,26 +122,29 @@ class DI:
                 "OR inventoryitem.invid REGEXP ? "
                 "OR inventoryitem.serial_num REGEXP ?) "
             )
+            if not authorized:
+                query += "AND `available`=1 "
             if categories:
                 query += (
-                    "AND (inventoryitem.category IN ("
-                    + ", ".join(["?"] * len(categories))
-                    + ")) "
+                        "AND (inventoryitem.category IN ("
+                        + ", ".join(["?"] * len(categories))
+                        + ")) "
                 )
-                cur.execute(query, (search, search, search, search, *categories))
+                query += "LIMIT 20 OFFSET ?"
+                cur.execute(query, (search, search, search, search, *categories, offset))
             else:
-                cur.execute(query, (search, search, search, search))
-            query += "LIMIT 20 OFFSET ?"
+                query += "LIMIT 20 OFFSET ?"
+                cur.execute(query, (search, search, search, search, offset))
 
             for (
-                id,
-                invid,
-                category,
-                display_name,
-                serial_num,
-                price,
-                available,
-                desc,
+                    id,
+                    invid,
+                    category,
+                    display_name,
+                    serial_num,
+                    price,
+                    available,
+                    desc,
             ) in cur:
                 invitem_list.append(
                     {
@@ -155,6 +158,10 @@ class DI:
                         "description": desc,
                     }
                 )
+            if authorized:
+                cur.execute('SELECT id FROM `equipment_record_fcs`.`inventoryitem`')
+            else:
+                cur.execute('SELECT id FROM `equipment_record_fcs`.`inventoryitem` WHERE available=1')
             cur.execute("SELECT FOUND_ROWS()")
             (count,) = cur.fetchone()
             conn.close()
@@ -253,11 +260,11 @@ class DI:
                 "(inquirername, inquireremail, comment, status, inventory_item) "
                 "VALUES (?, ?, ?, ?, ?)",
                 (
-                    inquiry_data["inquirerName"],
-                    inquiry_data["inquirerEmail"],
-                    inquiry_data["comment"],
-                    inquiry_data["status"],
-                    int(inquiry_data["itemId"]),
+                    inquiry_data["inquirerName"][0],
+                    inquiry_data["inquirerEmail"][0],
+                    inquiry_data["comment"][0],
+                    inquiry_data["status"][0],
+                    int(inquiry_data["itemId"][0]),
                 ),
             )
             conn.commit()
@@ -266,11 +273,11 @@ class DI:
                 "WHERE `inquirername`=? AND `inquireremail`=? AND "
                 "`comment`=? AND `status`=? AND `inventory_item`=?",
                 (
-                    inquiry_data["inquirerName"],
-                    inquiry_data["inquirerEmail"],
-                    inquiry_data["comment"],
-                    inquiry_data["status"],
-                    int(inquiry_data["itemId"]),
+                    inquiry_data["inquirerName"][0],
+                    inquiry_data["inquirerEmail"][0],
+                    inquiry_data["comment"][0],
+                    inquiry_data["status"][0],
+                    int(inquiry_data["itemId"][0]),
                 ),
             )
             data = {}
@@ -294,56 +301,38 @@ class DI:
     def create_item(item_data):
         try:
             conn, cur = dbconnect.connection("erfcs_admin")
+            logger.debug(f'{item_data["invid"]}, {item_data["price"]}')
             cur.execute(
                 "INSERT INTO `equipment_record_fcs`.`inventoryitem` "
                 "(invid, category, display_name, serial_num, price, available, description) "
                 "VALUES (?, ?, ?, ?, ?, ?,?)",
                 (
-                    item_data["invid"],
-                    item_data["category"],
-                    item_data["displayName"],
-                    item_data["serial_num"],
-                    float(item_data["price"]),
-                    item_data["available"],
-                    item_data["description"],
+                    item_data["invid"][0],
+                    item_data["category"][0],
+                    item_data["displayName"][0],
+                    item_data["serial_num"][0],
+                    float(item_data["price"][0]),
+                    item_data["available"][0],
+                    item_data["description"][0],
                 ),
             )
             conn.commit()
-            cur.execute(
-                "SELECT * FROM `equipment_record_fcs`.`inventoryitem` "
-                "WHERE `invid`=? AND `category`=? AND "
-                "`display_name`=? AND `description`=? AND `serial_num`=? AND `price`=? AND `available`=?",
-                (
-                    item_data["invid"],
-                    item_data["category"],
-                    item_data["displayName"],
-                    item_data["description"],
-                    item_data["serial_num"],
-                    float(item_data["price"]),
-                    item_data["available"],
-                ),
-            )
-            data = {}
-            for (
-                id,
-                invid,
-                category,
-                display_name,
-                serial_num,
-                price,
-                available,
-                description,
-            ) in cur:
-                data = {
-                    "id": id,
-                    "invid": invid,
-                    "category": category,
-                    "displayName": display_name,
-                    "description": description,
-                    "serial_num": serial_num,
-                    "price": price,
-                    "available": available,
-                }
+            cur.execute("SELECT LAST_INSERT_ID()")
+            logid = -1
+            for (log_id,) in cur:
+                logid = log_id
+            if logid < 0:
+                return False, "Failed to create log"
+            data = {
+                "id": logid,
+                "invid": item_data["invid"][0],
+                "category": item_data["category"][0],
+                "displayName": item_data["displayName"][0],
+                "description": item_data["description"][0],
+                "serial_num": item_data["serial_num"][0],
+                "price": float(item_data["price"][0]),
+                "available": 1
+            }
 
             conn.close()
             return True, "", data
@@ -361,14 +350,14 @@ class DI:
                 "SET invid=?, category=?, display_name=?, serial_num=?, price=?, available=?, description=? "
                 "WHERE `id`=?",
                 (
-                    item_data["invid"],
-                    item_data["category"],
-                    item_data["displayName"],
-                    item_data["serial_num"],
-                    float(item_data["price"]),
-                    item_data["available"],
-                    item_data["description"],
-                    item_data["id"],
+                    item_data["invid"][0],
+                    item_data["category"][0],
+                    item_data["displayName"][0],
+                    item_data["serial_num"][0],
+                    float(item_data["price"][0]),
+                    item_data["available"][0],
+                    item_data["description"][0],
+                    item_data["id"][0],
                 ),
             )
 
@@ -376,14 +365,14 @@ class DI:
             if cur.rowcount == 0:
                 return False, "couldn't find the specifed item", {}
             data = {
-                "id": item_data["id"],
-                "invid": item_data["invid"],
-                "category": item_data["category"],
-                "displayName": item_data["displayName"],
-                "description": item_data["description"],
-                "serial_num": item_data["serial_num"],
-                "price": item_data["price"],
-                "available": item_data["available"],
+                "id": item_data["id"][0],
+                "invid": item_data["invid"][0],
+                "category": item_data["category"][0],
+                "displayName": item_data["displayName"][0],
+                "description": item_data["description"][0],
+                "serial_num": item_data["serial_num"][0],
+                "price": item_data["price"][0],
+                "available": item_data["available"][0],
             }
             return True, "", data
         except Exception as e:
@@ -406,7 +395,7 @@ class DI:
             conn.commit()
             cur.execute(
                 "SELECT * " "FROM `equipment_record_fcs`.`inquiry` " "WHERE `id`=?",
-                (int(updated_data["itemId"]),),
+                (int(updated_data["itemId"][0]),),
             )
             data = {}
             for id, inquirername, inquireremail, comment, status, invid in cur:
@@ -463,7 +452,7 @@ class DI:
 
             conn.commit()
 
-            cur.execute(f"SELECT `id`, `filename` from `file` WHERE `log` = {logid}")
+            cur.execute(f"SELECT `id`, `filename` from `file` WHERE `log` = ?", (logid,))
 
             for row in cur:
                 files.append({"id": row[0], "fileName": row[1]})
