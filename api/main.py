@@ -20,8 +20,8 @@ def version(handler: webframework.RequestHandler):
 @server.post("/api/login")
 def login(handler: webframework.RequestHandler):
     try:
-        username = handler.post_data["username"]
-        password = handler.post_data["password"]
+        username = handler.post_data["username"][0]
+        password = handler.post_data["password"][0]
         logger.debug("username " + username)
         logger.debug("password " + password)
         success, error_message = db.authenticate_user(handler, username, password)
