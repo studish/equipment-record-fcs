@@ -158,10 +158,26 @@ class DI:
                         "description": desc,
                     }
                 )
-            if authorized:
-                cur.execute('SELECT id FROM `equipment_record_fcs`.`inventoryitem`')
+
+            query = "SELECT * FROM inventoryitem "
+            query += (
+                "WHERE (inventoryitem.display_name REGEXP ? "
+                "OR inventoryitem.category REGEXP ? "
+                "OR inventoryitem.invid REGEXP ? "
+                "OR inventoryitem.serial_num REGEXP ?) "
+            )
+            if not authorized:
+                query += "AND `available`=1 "
+            if categories:
+                query += (
+                        "AND (inventoryitem.category IN ("
+                        + ", ".join(["?"] * len(categories))
+                        + ")) "
+                )
+                cur.execute(query, (search, search, search, search, *categories, offset))
             else:
-                cur.execute('SELECT id FROM `equipment_record_fcs`.`inventoryitem` WHERE available=1')
+                cur.execute(query, (search, search, search, search, offset))
+
             cur.execute("SELECT FOUND_ROWS()")
             (count,) = cur.fetchone()
             conn.close()
