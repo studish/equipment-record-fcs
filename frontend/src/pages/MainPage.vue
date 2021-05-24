@@ -21,7 +21,9 @@
 
       <div class="spacer"></div>
 
-      <button @click="showNewItemModal">Добавить предмет инвентаря</button>
+      <button v-if="$store.state.user.adminRole" @click="showNewItemModal">
+        Добавить предмет инвентаря
+      </button>
     </div>
     <div class="content">
       <Pagination

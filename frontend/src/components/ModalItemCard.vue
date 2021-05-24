@@ -1,5 +1,6 @@
 <template>
   <div class="modal-backdrop">
+    <div class="modal-close-area" @click="$emit('close')"></div>
     <div class="modal">
       <div class="header">
         <ModalLogs
@@ -16,63 +17,88 @@
           :invid="item.invid"
           :itemname="item.displayName"
         ></ModalInquiry>
-        <button @click="showLogs = true" v-if="$store.state.user.adminRole">
+        <button @click="showLogs = true" v-if="$store.state.user.authorized">
           Логи
         </button>
         <button @click="showInquiry = true">Подать заявку</button>
         <button @click="close" title="Закрыть">X</button>
       </div>
       <div class="body">
-        <b v-if="!editing" class="displayName">{{
-          editableItem.displayName
-        }}</b>
-        <input v-else type="text" v-model="editableItem.displayName" />
-        <p>
-          Инв. номер:
-          <input
-            :disabled="!editing"
-            type="text"
-            v-model="editableItem.invid"
-          />
-        </p>
-        <p>
-          Категория:
-          <select :disabled="!editing" v-model="editableItem.category">
-            <option v-for="option in categories" :value="option" :key="option">
-              {{ option }}
-            </option>
-          </select>
-        </p>
-        <p>
-          Серийный номер:
-          <input
-            :disabled="!editing"
-            type="text"
-            v-model="editableItem.serial_num"
-          />
-        </p>
-        <p>
-          Цена (руб):
-          <input
-            type="text"
-            :disabled="!editing"
-            v-model="editableItem.price"
-          />
-        </p>
-        <p>
-          Доступно:
-          <input
-            type="checkbox"
-            v-model="editableItem.available"
-            :disabled="!editing"
-          />
-        </p>
-        <b>Описание</b>
-        <textarea
-          class="description"
-          v-text="editableItem.description"
-          :disabled="!editing"
-        ></textarea>
+        <table>
+          <tr>
+            <td>Название:</td>
+            <td>
+              <b v-if="!editing" class="displayName">
+                {{ editableItem.displayName }}
+              </b>
+              <input v-else type="text" v-model="editableItem.displayName" />
+            </td>
+          </tr>
+          <tr>
+            <td>Инв. номер:</td>
+            <td>
+              <input
+                :disabled="!editing"
+                type="text"
+                v-model="editableItem.invid"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Категория:</td>
+            <td>
+              <select :disabled="!editing" v-model="editableItem.category">
+                <option
+                  v-for="option in categories"
+                  :value="option"
+                  :key="option"
+                >
+                  {{ option }}
+                </option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Серийный номер:</td>
+            <td>
+              <input
+                :disabled="!editing"
+                type="text"
+                v-model="editableItem.serial_num"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Цена (руб):</td>
+            <td>
+              <input
+                type="text"
+                :disabled="!editing"
+                v-model="editableItem.price"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Доступно:</td>
+            <td>
+              <input
+                type="checkbox"
+                v-model="editableItem.available"
+                :disabled="!editing"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td><b>Описание</b></td>
+            <td>
+              <textarea
+                class="description"
+                v-model="editableItem.description"
+                :disabled="!editing"
+              ></textarea>
+            </td>
+          </tr>
+        </table>
         <div v-if="$store.state.user.adminRole">
           <button @click="toggleEdit()">
             {{ editing ? "Отмена" : "Редактировать" }}
@@ -182,6 +208,14 @@ input {
   align-items: center;
 
   padding: 10px;
+
+  .modal-close-area {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
 }
 
 .modal {
@@ -192,7 +226,7 @@ input {
   flex-direction: column;
   align-items: stretch;
 
-  min-width: 60%;
+  min-width: 40%;
 
   .displayName {
     font-size: x-large;

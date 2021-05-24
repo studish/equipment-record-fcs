@@ -17,7 +17,7 @@
         <a :href="`/api/generateFiles?inqid=${inquiry.id}`" target="_blank"
           >Накладная</a
         >
-        <div>
+        <div v-if="$store.state.user.adminRole">
           <button
             v-for="state in states"
             :key="'state' + state.status"
