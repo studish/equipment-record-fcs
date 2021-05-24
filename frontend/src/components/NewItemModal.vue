@@ -1,35 +1,81 @@
 <template>
   <div class="modal-backdrop">
+    <div class="modal-close-area" @click="$emit('close')"></div>
     <div class="modal">
       <div class="header"></div>
       <div class="body">
-        <p>Название: <input type="text" v-model="item.displayName" /></p>
-        <p>
-          Инв. номер:
-          <input type="text" v-model="item.invid" />
-        </p>
-        <p>
-          Категория:
-          <select v-model="item.category">
-            <option v-for="option in categories" :value="option" :key="option">
-              {{ option }}
-            </option>
-          </select>
-        </p>
-        <p>
-          Серийный номер:
-          <input type="text" v-model="item.serial_num" />
-        </p>
-        <p>
-          Цена (руб):
-          <input type="text" v-model="item.price" />
-        </p>
-        <p>
-          Доступно:
-          <input type="checkbox" v-model="item.available" />
-        </p>
-        <b>Описание: </b>
-        <textarea class="description" v-text="item.description"></textarea>
+        <table>
+          <tr>
+            <td>
+              <label for="name">Название:</label>
+            </td>
+            <td>
+              <input type="text" id="name" v-model="item.displayName" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="invnum">Инв. номер:</label>
+            </td>
+            <td>
+              <input type="text" id="invnum" v-model="item.invid" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="category">Категория:</label>
+            </td>
+            <td>
+              <select v-model="item.category" id="category">
+                <option
+                  v-for="option in categories"
+                  :value="option"
+                  :key="option"
+                >
+                  {{ option }}
+                </option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="serial">Серийный номер:</label>
+            </td>
+            <td>
+              <input id="serial" type="text" v-model="item.serial_num" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="price">Цена (руб):</label>
+            </td>
+            <td>
+              <input id="price" type="text" v-model="item.price" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="available">Доступно:</label>
+            </td>
+            <td>
+              <input type="checkbox" id="available" v-model="item.available" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="description">Описание</label>
+            </td>
+            <td>
+              <textarea
+                id="description"
+                class="description"
+                v-model="item.description"
+                rows="10"
+                cols="40"
+              ></textarea>
+            </td>
+          </tr>
+        </table>
       </div>
       <div class="footer">
         <button @click="$emit('close')">Отмена</button>
@@ -50,14 +96,14 @@ import ModalLogs from "./ModalLogs.vue";
 import ModalInquiry from "./ModalInquiry.vue";
 
 @Options({
-  name: "ModalItemCard",
+  name: "NewItemModal",
   components: {
     ModalLogs,
     ModalInquiry,
   },
   emits: ["close", "success"],
 })
-export default class ModalItemCard extends Vue {
+export default class NewItemModal extends Vue {
   categories = Object.keys(itemCategory).filter(
     (k) => typeof itemCategory[k as any] === "number"
   );
@@ -114,6 +160,14 @@ input {
   align-items: center;
 
   padding: 10px;
+
+  .modal-close-area {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
 }
 
 .modal {
@@ -124,10 +178,14 @@ input {
   flex-direction: column;
   align-items: stretch;
 
-  min-width: 60%;
+  min-width: 30%;
 
   .displayName {
     font-size: x-large;
+  }
+
+  table {
+    width: 100%;
   }
 }
 

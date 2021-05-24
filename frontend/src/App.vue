@@ -3,7 +3,9 @@
   <MainPage v-if="$store.state.page === 'main'" :searchTerm="searchTerm" />
   <LoginPage v-else-if="$store.state.page === 'login'" />
   <InquiriesPage
-    v-else-if="$store.state.page === 'inquiries' && $store.state.user.adminRole"
+    v-else-if="
+      $store.state.page === 'inquiries' && $store.state.user.authorized
+    "
   />
   <NotFoundPage v-else />
 </template>
@@ -17,6 +19,7 @@ import InquiriesPage from "./pages/InquiriesPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 
 @Options({
+  name: "App",
   components: {
     LoginPage,
     MainPage,
@@ -106,5 +109,9 @@ button {
     -moz-box-shadow: 0px 0px 7px 0px rgba(50, 50, 50, 0.75);
     box-shadow: 0px 0px 7px 0px rgba(50, 50, 50, 0.75);
   }
+}
+
+.modal {
+  z-index: 10;
 }
 </style>

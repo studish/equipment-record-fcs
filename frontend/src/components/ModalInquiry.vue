@@ -1,5 +1,6 @@
 <template>
   <div class="modal-backdrop">
+    <div class="modal-close-area" @click="$emit('close')"></div>
     <div class="modal">
       <div class="header">
         <b class="displayName">{{ itemname }}</b>
@@ -25,7 +26,14 @@
           </tr>
           <tr>
             <td><label for="comment">Комментарий: </label></td>
-            <td><textarea name="comment" v-model="inquiry.comment" /></td>
+            <td>
+              <textarea
+                name="comment"
+                rows="10"
+                cols="50"
+                v-model="inquiry.comment"
+              />
+            </td>
           </tr>
         </table>
         <button @click="send">Отправить</button>
@@ -81,6 +89,7 @@ export default class ModalInquiry extends Vue {
     const json: RequestResponse<IInquiry> = await response.json();
     if (json.success) {
       alert("Заявка успешно подана, ожидайте письма на указанный адрес");
+      this.close();
     } else {
       alert("Ошибка: " + json.errorMessage);
     }
@@ -106,6 +115,14 @@ input {
   align-items: center;
 
   padding: 10px;
+
+  .modal-close-area {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
 }
 
 .modal {
@@ -116,7 +133,11 @@ input {
   flex-direction: column;
   align-items: stretch;
 
-  min-width: 60%;
+  min-width: 40%;
+
+  table {
+    width: 100%;
+  }
 }
 
 .header {

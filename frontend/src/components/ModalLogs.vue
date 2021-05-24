@@ -1,5 +1,6 @@
 <template>
   <div class="modal-backdrop">
+    <div class="modal-close-area" @click="$emit('close')"></div>
     <div class="modal">
       <div class="header">
         <b class="displayName">{{ itemname }}</b>
@@ -9,19 +10,26 @@
         </div>
       </div>
       <div class="body">
-        <div v-for="log in logs" :key="'log' + log.id">
-          <span class="timestamp" v-text="log.timestamp"></span>
-          {{ log.description }}
-          <div v-if="log.files" class="files">
-            <a
-              v-for="file in log.files"
-              :key="'file' + file.id"
-              :href="`/api/download?id=${file.id}`"
-              target="_blank"
-              >{{ file.fileName }}</a
-            >
-          </div>
-        </div>
+        <table>
+          <template v-for="log in logs" :key="'log' + log.id">
+            <tr>
+              <td class="timestamp" v-text="log.timestamp"></td>
+              <td>{{ log.description }}</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td v-if="log.files" class="files">
+                <a
+                  v-for="file in log.files"
+                  :key="'file' + file.id"
+                  :href="`/api/download?id=${file.id}`"
+                  target="_blank"
+                  >{{ file.fileName }}</a
+                >
+              </td>
+            </tr>
+          </template>
+        </table>
         <div v-show="showCreateLog" class="createLog">
           <label for="newLogText">
             <b>Новый лог:</b>
@@ -32,10 +40,27 @@
             method="post"
             enctype="multipart/form-data"
           >
-            <input type="text" name="description" v-model="newLogText" />
-            <input type="file" name="files" multiple />
+            <table>
+              <tr>
+                <td>
+                  <label for="description">Описание:</label>
+                </td>
+                <td>
+                  <input type="text" id="description" v-model="newLogText" />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label for="files">Файлы:</label>
+                </td>
+                <td>
+                  <input type="file" id="files" multiple />
+                </td>
+              </tr>
+            </table>
           </form>
           <button @click="createLog">Создать</button>
+          <button @click="showCreateLog = false">Отменить</button>
         </div>
       </div>
     </div>
@@ -141,6 +166,14 @@ input {
   align-items: center;
 
   padding: 10px;
+
+  .modal-close-area {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
 }
 
 .modal {
@@ -151,7 +184,7 @@ input {
   flex-direction: column;
   align-items: stretch;
 
-  min-width: 60%;
+  min-width: 45%;
 }
 
 .header {
@@ -171,7 +204,7 @@ input {
 
   .timestamp {
     color: grey;
-    font-style: italic;
+    /* font-style: italic; */
 
     &::before {
       content: "[";

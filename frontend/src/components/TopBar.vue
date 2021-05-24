@@ -14,7 +14,7 @@
         $store.state.user.username
       }}</span>
       <button
-        v-if="$store.state.user.adminRole && $store.state.page !== 'inquiries'"
+        v-if="$store.state.user.authorized && $store.state.page !== 'inquiries'"
         @click="$store.dispatch('switchToPage', 'inquiries')"
       >
         Заявки
